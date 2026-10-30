@@ -13,12 +13,16 @@ import (
 	"github.com/pinfold-ci/pinfold/internal/diag"
 )
 
+// maxKeyLen bounds env: and with: keys, well under YAML's 1024-character limit on keys.
+const maxKeyLen = 256
+
 var (
-	nameRE    = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
-	envNameRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-	outputRE  = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}\.[a-z][a-z0-9_-]{0,62}$`)
-	usesRE    = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}(?:/[A-Za-z0-9._/-]+)?@[A-Za-z0-9._/+-]{1,128}$`)
-	hexSHARE  = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
+	nameRE      = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}$`)
+	envNameRE   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	inputNameRE = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_-]*$`)
+	outputRE    = regexp.MustCompile(`^[a-z][a-z0-9-]{0,62}\.[a-z][a-z0-9_-]{0,62}$`)
+	usesRE      = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}(?:/[A-Za-z0-9._/-]+)?@[A-Za-z0-9._/+-]{1,128}$`)
+	hexSHARE    = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 )
 
 // Decode turns the loader's top-level mapping into a Spec. It reports every
@@ -593,8 +597,16 @@ func (d *decoder) valueMap(n *yaml.Node, what string, envNames bool) map[string]
 	out := map[string]Value{}
 	for i := 0; i+1 < len(n.Content); i += 2 {
 		k, v := n.Content[i], n.Content[i+1]
+		if len(k.Value) > maxKeyLen {
+			d.report("PF113", k, "", "%s key is longer than %d characters", what, maxKeyLen)
+			continue
+		}
 		if envNames && !envNameRE.MatchString(k.Value) {
 			d.report("PF113", k, "use letters, digits and underscores, not starting with a digit", "invalid environment variable name %q", k.Value)
+			continue
+		}
+		if !envNames && !inputNameRE.MatchString(k.Value) {
+			d.report("PF113", k, "use letters, digits, underscores and hyphens", "invalid action input name %q", k.Value)
 			continue
 		}
 		if val := d.value(v, fmt.Sprintf("%s %q", what, k.Value)); val != nil {

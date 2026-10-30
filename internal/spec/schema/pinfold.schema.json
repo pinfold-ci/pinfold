@@ -598,7 +598,8 @@
             "env": {
               "type": "object",
               "propertyNames": {
-                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                "maxLength": 256
               },
               "additionalProperties": {
                 "$ref": "#/$defs/value"
@@ -631,6 +632,10 @@
               "type": "object",
               "additionalProperties": {
                 "$ref": "#/$defs/value"
+              },
+              "propertyNames": {
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$",
+                "maxLength": 256
               }
             }
           }
