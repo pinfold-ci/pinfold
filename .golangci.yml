@@ -19,6 +19,11 @@ linters:
       rules:
         - name: exported
           disabled: true
+  exclusions:
+    rules:
+      # Tests read their own fixtures and golden files.
+      - path: _test\.go
+        linters: [gosec]
 formatters:
   enable:
     - gofmt

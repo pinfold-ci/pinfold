@@ -1,0 +1,463 @@
+{
+  "Version": 0,
+  "Workflows": [
+    {
+      "Name": "release",
+      "Span": {
+        "file": "example.yml",
+        "line": 6,
+        "col": 3
+      },
+      "On": [
+        {
+          "Event": "push",
+          "Span": {
+            "file": "example.yml",
+            "line": 7,
+            "col": 11
+          },
+          "Branches": null,
+          "Tags": [
+            "v*"
+          ],
+          "Paths": null,
+          "Types": null,
+          "Crons": null
+        }
+      ],
+      "Jobs": [
+        {
+          "Name": "build",
+          "Span": {
+            "file": "example.yml",
+            "line": 9,
+            "col": 7
+          },
+          "Runner": "ubuntu-24.04",
+          "Needs": null,
+          "If": null,
+          "Permissions": [
+            {
+              "Scope": "contents",
+              "Level": "read",
+              "Span": {
+                "file": "example.yml",
+                "line": 11,
+                "col": 24
+              }
+            }
+          ],
+          "Environment": "",
+          "TimeoutMinutes": 0,
+          "Concurrency": null,
+          "Steps": [
+            {
+              "Kind": "checkout",
+              "Span": {
+                "file": "example.yml",
+                "line": 13,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "",
+              "Env": null,
+              "Uses": "",
+              "With": null,
+              "Effect": null
+            },
+            {
+              "Kind": "run",
+              "Span": {
+                "file": "example.yml",
+                "line": 14,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "python -m pip install build \u0026\u0026 python -m build",
+              "Env": null,
+              "Uses": "",
+              "With": null,
+              "Effect": null
+            }
+          ],
+          "Produces": [
+            {
+              "Name": "dist",
+              "Path": "dist/",
+              "Span": {
+                "file": "example.yml",
+                "line": 15,
+                "col": 21
+              }
+            }
+          ],
+          "Consumes": null
+        },
+        {
+          "Name": "publish",
+          "Span": {
+            "file": "example.yml",
+            "line": 16,
+            "col": 7
+          },
+          "Runner": "ubuntu-24.04",
+          "Needs": [
+            {
+              "Name": "build",
+              "Span": {
+                "file": "example.yml",
+                "line": 17,
+                "col": 17
+              }
+            }
+          ],
+          "If": null,
+          "Permissions": [
+            {
+              "Scope": "id-token",
+              "Level": "write",
+              "Span": {
+                "file": "example.yml",
+                "line": 20,
+                "col": 24
+              }
+            }
+          ],
+          "Environment": "pypi",
+          "TimeoutMinutes": 0,
+          "Concurrency": null,
+          "Steps": [
+            {
+              "Kind": "uses",
+              "Span": {
+                "file": "example.yml",
+                "line": 23,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "",
+              "Env": null,
+              "Uses": "pypa/gh-action-pypi-publish@v1.14.3",
+              "With": null,
+              "Effect": null
+            }
+          ],
+          "Produces": null,
+          "Consumes": [
+            {
+              "Name": "dist",
+              "From": {
+                "Name": "build",
+                "Span": {
+                  "file": "example.yml",
+                  "line": 21,
+                  "col": 35
+                }
+              },
+              "To": "dist/",
+              "Span": {
+                "file": "example.yml",
+                "line": 21,
+                "col": 21
+              }
+            }
+          ]
+        },
+        {
+          "Name": "github-release",
+          "Span": {
+            "file": "example.yml",
+            "line": 24,
+            "col": 7
+          },
+          "Runner": "ubuntu-24.04",
+          "Needs": [
+            {
+              "Name": "publish",
+              "Span": {
+                "file": "example.yml",
+                "line": 25,
+                "col": 17
+              }
+            }
+          ],
+          "If": null,
+          "Permissions": [
+            {
+              "Scope": "contents",
+              "Level": "write",
+              "Span": {
+                "file": "example.yml",
+                "line": 27,
+                "col": 24
+              }
+            }
+          ],
+          "Environment": "",
+          "TimeoutMinutes": 0,
+          "Concurrency": null,
+          "Steps": [
+            {
+              "Kind": "effect",
+              "Span": {
+                "file": "example.yml",
+                "line": 30,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "",
+              "Env": null,
+              "Uses": "",
+              "With": null,
+              "Effect": {
+                "Name": "release",
+                "Span": {
+                  "file": "example.yml",
+                  "line": 30,
+                  "col": 13
+                },
+                "Target": null,
+                "Body": "",
+                "Sticky": "",
+                "Labels": null,
+                "FromCommentArgs": false,
+                "Allowed": null,
+                "Max": 0,
+                "SHA": null,
+                "State": "",
+                "Context": "",
+                "Description": "",
+                "Tag": {
+                  "Kind": "context",
+                  "Text": "ref.name",
+                  "Span": {
+                    "file": "example.yml",
+                    "line": 31,
+                    "col": 29
+                  }
+                },
+                "Files": [
+                  "dist/*"
+                ],
+                "GenerateNotes": true,
+                "Draft": false,
+                "Prerelease": false
+              }
+            }
+          ],
+          "Produces": null,
+          "Consumes": [
+            {
+              "Name": "dist",
+              "From": {
+                "Name": "build",
+                "Span": {
+                  "file": "example.yml",
+                  "line": 28,
+                  "col": 35
+                }
+              },
+              "To": "dist/",
+              "Span": {
+                "file": "example.yml",
+                "line": 28,
+                "col": 21
+              }
+            }
+          ]
+        }
+      ],
+      "UnsafeRun": false
+    },
+    {
+      "Name": "triage",
+      "Span": {
+        "file": "example.yml",
+        "line": 35,
+        "col": 3
+      },
+      "On": [
+        {
+          "Event": "issue_comment",
+          "Span": {
+            "file": "example.yml",
+            "line": 36,
+            "col": 11
+          },
+          "Branches": null,
+          "Tags": null,
+          "Paths": null,
+          "Types": [
+            "created"
+          ],
+          "Crons": null
+        }
+      ],
+      "Jobs": [
+        {
+          "Name": "label",
+          "Span": {
+            "file": "example.yml",
+            "line": 38,
+            "col": 7
+          },
+          "Runner": "ubuntu-24.04",
+          "Needs": null,
+          "If": {
+            "Span": {
+              "file": "example.yml",
+              "line": 41,
+              "col": 11
+            },
+            "All": [
+              {
+                "Span": {
+                  "file": "example.yml",
+                  "line": 42,
+                  "col": 15
+                },
+                "All": null,
+                "Any": null,
+                "Kind": "comment",
+                "Values": [
+                  "/label "
+                ],
+                "Flag": false
+              },
+              {
+                "Span": {
+                  "file": "example.yml",
+                  "line": 43,
+                  "col": 15
+                },
+                "All": null,
+                "Any": null,
+                "Kind": "maintainer",
+                "Values": null,
+                "Flag": true
+              }
+            ],
+            "Any": null,
+            "Kind": "all",
+            "Values": null,
+            "Flag": false
+          },
+          "Permissions": [
+            {
+              "Scope": "issues",
+              "Level": "write",
+              "Span": {
+                "file": "example.yml",
+                "line": 44,
+                "col": 24
+              }
+            }
+          ],
+          "Environment": "",
+          "TimeoutMinutes": 0,
+          "Concurrency": null,
+          "Steps": [
+            {
+              "Kind": "effect",
+              "Span": {
+                "file": "example.yml",
+                "line": 46,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "",
+              "Env": null,
+              "Uses": "",
+              "With": null,
+              "Effect": {
+                "Name": "add_labels",
+                "Span": {
+                  "file": "example.yml",
+                  "line": 46,
+                  "col": 13
+                },
+                "Target": {
+                  "Kind": "context",
+                  "Text": "issue.number",
+                  "Span": {
+                    "file": "example.yml",
+                    "line": 47,
+                    "col": 32
+                  }
+                },
+                "Body": "",
+                "Sticky": "",
+                "Labels": null,
+                "FromCommentArgs": true,
+                "Allowed": [
+                  "bug",
+                  "docs",
+                  "enhancement",
+                  "question"
+                ],
+                "Max": 3,
+                "SHA": null,
+                "State": "",
+                "Context": "",
+                "Description": "",
+                "Tag": null,
+                "Files": null,
+                "GenerateNotes": false,
+                "Draft": false,
+                "Prerelease": false
+              }
+            },
+            {
+              "Kind": "effect",
+              "Span": {
+                "file": "example.yml",
+                "line": 51,
+                "col": 13
+              },
+              "Name": "",
+              "Run": "",
+              "Env": null,
+              "Uses": "",
+              "With": null,
+              "Effect": {
+                "Name": "comment",
+                "Span": {
+                  "file": "example.yml",
+                  "line": 51,
+                  "col": 13
+                },
+                "Target": {
+                  "Kind": "context",
+                  "Text": "issue.number",
+                  "Span": {
+                    "file": "example.yml",
+                    "line": 52,
+                    "col": 32
+                  }
+                },
+                "Body": "Labelled by @{{ actor }}.",
+                "Sticky": "triage-ack",
+                "Labels": null,
+                "FromCommentArgs": false,
+                "Allowed": null,
+                "Max": 0,
+                "SHA": null,
+                "State": "",
+                "Context": "",
+                "Description": "",
+                "Tag": null,
+                "Files": null,
+                "GenerateNotes": false,
+                "Draft": false,
+                "Prerelease": false
+              }
+            }
+          ],
+          "Produces": null,
+          "Consumes": null
+        }
+      ],
+      "UnsafeRun": false
+    }
+  ]
+}

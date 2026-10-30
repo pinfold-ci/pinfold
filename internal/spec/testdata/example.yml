@@ -1,0 +1,54 @@
+# The example from design §5 (Draft 4.1).
+version: 0
+
+workflows:
+
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      build:                                   # feeder: user code OK, no cache restore
+        runner: ubuntu-24.04
+        permissions: { contents: read }
+        steps:
+          - checkout: {}
+          - run: python -m pip install build && python -m build
+        produces: { dist: dist/ }              # generated upload + sha256 digest output
+      publish:                                 # privileged: declarative only
+        needs: [build]
+        runner: ubuntu-24.04
+        environment: pypi
+        permissions: { id-token: write }
+        consumes: { dist: { from: build, to: dist/ } }   # generated download + digest check
+        steps:
+          - uses: pypa/gh-action-pypi-publish@v1.14.3    # registry: privileged_ok
+      github-release:
+        needs: [publish]
+        runner: ubuntu-24.04
+        permissions: { contents: write }
+        consumes: { dist: { from: build, to: dist/ } }
+        steps:
+          - effect: release
+            tag: { context: ref.name }          # tainted → reaches the script via env only
+            files: ["dist/*"]
+            generate_notes: true
+
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      label:
+        runner: ubuntu-24.04
+        if:
+          all:
+            - { comment: { starts_with: "/label " } }
+            - { maintainer: true }
+        permissions: { issues: write }
+        steps:
+          - effect: add_labels
+            target: { context: issue.number }
+            labels: { from_comment_args: true }
+            allowed: [bug, docs, enhancement, question]
+            max: 3
+          - effect: comment
+            target: { context: issue.number }
+            sticky: triage-ack
+            body: "Labelled by @{{ actor }}."   # template over typed values; sanitised; @mention allowlisted to actor
