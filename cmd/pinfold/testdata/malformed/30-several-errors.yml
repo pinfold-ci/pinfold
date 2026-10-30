@@ -1,0 +1,10 @@
+version: 0
+workflows:
+  ci:
+    on: { push: {}, pull_request: {} }
+    jobs:
+      Build:
+        runs-on: ubuntu-24.04
+        permissions: { contents: wrte }
+        steps:
+          - uses: ./local-action

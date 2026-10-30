@@ -1,0 +1,5 @@
+version: 0
+workflows:
+  ci:
+    on: { pull_request: {} }
+    jobs: { build: { runner: x, steps: [ { run: make } ] } }

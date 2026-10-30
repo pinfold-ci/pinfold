@@ -1,0 +1,2 @@
+testdata/malformed/17-pull-request-trigger.yml:4:11: error PF120: trigger "pull_request" is not supported
+    hint: untrusted pull_request builds arrive in v0.2 (handoff); keep this workflow hand-written for now

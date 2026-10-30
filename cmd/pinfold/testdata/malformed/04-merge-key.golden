@@ -1,0 +1,2 @@
+testdata/malformed/04-merge-key.yml:10:9: error PF102: merge key << is not allowed
+    hint: write the keys out in full

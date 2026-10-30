@@ -1,0 +1,2 @@
+testdata/malformed/02-tab-indentation.yml:3: error PF101: invalid YAML: found character that cannot start any token
+    hint: check indentation (spaces only, no tabs) and quoting

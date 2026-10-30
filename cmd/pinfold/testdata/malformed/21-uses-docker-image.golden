@@ -1,0 +1,2 @@
+testdata/malformed/21-uses-docker-image.yml:9:19: error PF123: docker:// actions are not supported
+    hint: use owner/repo@tag or owner/repo/path@tag, e.g. actions/checkout@v7

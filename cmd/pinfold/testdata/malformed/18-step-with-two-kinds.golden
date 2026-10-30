@@ -1,0 +1,2 @@
+testdata/malformed/18-step-with-two-kinds.yml:9:13: error PF121: a step has more than one of run, uses
+    hint: split it into separate steps, one kind each

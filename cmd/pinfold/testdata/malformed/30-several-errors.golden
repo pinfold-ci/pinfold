@@ -1,0 +1,10 @@
+testdata/malformed/30-several-errors.yml:4:21: error PF120: trigger "pull_request" is not supported
+    hint: untrusted pull_request builds arrive in v0.2 (handoff); keep this workflow hand-written for now
+testdata/malformed/30-several-errors.yml:6:7: error PF114: invalid job name "Build"
+    hint: use lowercase letters, digits and hyphens, starting with a letter (e.g. build-docs)
+testdata/malformed/30-several-errors.yml:7:9: error PF110: unknown key "runs-on" in job "Build"
+    hint: did you mean "runner"? (Pinfold's name for "runs-on")
+testdata/malformed/30-several-errors.yml:8:34: error PF130: invalid level "wrte" for permission "contents"
+    hint: allowed values: read, write, none
+testdata/malformed/30-several-errors.yml:10:19: error PF123: local actions (./local-action) are not supported
+    hint: use owner/repo@tag or owner/repo/path@tag, e.g. actions/checkout@v7

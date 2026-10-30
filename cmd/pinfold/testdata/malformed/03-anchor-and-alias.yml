@@ -1,0 +1,7 @@
+version: 0
+runner: &r ubuntu-24.04
+workflows:
+  ci:
+    on: { push: {} }
+    jobs:
+      build: { runner: *r, steps: [ { run: make } ] }

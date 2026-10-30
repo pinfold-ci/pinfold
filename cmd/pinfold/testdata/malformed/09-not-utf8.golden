@@ -1,0 +1,2 @@
+testdata/malformed/09-not-utf8.yml: error PF105: spec is not valid UTF-8
+    hint: save the file as UTF-8

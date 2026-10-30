@@ -1,0 +1,2 @@
+testdata/malformed/22-needs-unknown-job.yml:11:17: error PF124: job "publish": needs refers to unknown job "biuld"
+    hint: did you mean "build"?

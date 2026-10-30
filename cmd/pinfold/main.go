@@ -2,11 +2,15 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/pinfold-ci/pinfold/internal/codes"
+	"github.com/pinfold-ci/pinfold/internal/diag"
+	"github.com/pinfold-ci/pinfold/internal/load"
+	"github.com/pinfold-ci/pinfold/internal/spec"
 	"github.com/pinfold-ci/pinfold/internal/version"
 )
 
@@ -16,6 +20,7 @@ Usage:
   pinfold <command> [arguments]
 
 Commands:
+  validate   check pinfold.yml and report problems
   explain    explain a diagnostic code, e.g. "pinfold explain PF110"
   version    print the compiler version
   help       show this help
@@ -35,6 +40,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "version", "--version":
 		fmt.Fprintf(stdout, "pinfold %s\n", version.Version)
 		return 0
+	case "validate":
+		return runValidate(args[1:], stdout, stderr)
 	case "explain":
 		return runExplain(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
@@ -58,4 +65,49 @@ func runExplain(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprint(stdout, page)
 	return 0
+}
+
+// runValidate checks a spec. Exit 0: no errors (warnings allowed); 1: errors; 2: usage.
+func runValidate(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("validate", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	format := fs.String("format", "text", "output format: text or json")
+	fs.Usage = func() {
+		fmt.Fprintln(stderr, "usage: pinfold validate [--format text|json] [pinfold.yml]")
+	}
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if (*format != "text" && *format != "json") || fs.NArg() > 1 {
+		fs.Usage()
+		return 2
+	}
+	path := "pinfold.yml"
+	if fs.NArg() == 1 {
+		path = fs.Arg(0)
+	}
+	diags := validate(path)
+	var err error
+	if *format == "json" {
+		err = diags.WriteJSON(stdout)
+	} else {
+		err = diags.WriteText(stdout)
+	}
+	if err != nil {
+		fmt.Fprintf(stderr, "pinfold validate: %v\n", err)
+		return 2
+	}
+	if diags.HasErrors() {
+		return 1
+	}
+	return 0
+}
+
+func validate(path string) diag.List {
+	root, diags := load.ReadFile(path)
+	if diags.HasErrors() {
+		return diags
+	}
+	_, diags = spec.Decode(path, root)
+	return diags
 }

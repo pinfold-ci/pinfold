@@ -1,0 +1,2 @@
+testdata/malformed/11-misspelled-permissions.yml:8:9: error PF110: unknown key "permisions" in job "build"
+    hint: did you mean "permissions"?

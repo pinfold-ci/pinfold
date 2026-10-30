@@ -1,0 +1,2 @@
+testdata/malformed/19-unknown-effect.yml:10:21: error PF122: unknown effect "close_issue"
+    hint: effects: add_labels, comment, commit_status, release, remove_labels

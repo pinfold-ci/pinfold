@@ -1,0 +1,2 @@
+testdata/malformed/14-bad-commit-status-state.yml:12:20: error PF113: "passed" is not a valid commit state
+    hint: allowed values: error, failure, pending, success

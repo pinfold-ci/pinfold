@@ -75,6 +75,9 @@ func (d *decoder) fields(n *yaml.Node, what string, allowed, required []string, 
 		k, v := n.Content[i], n.Content[i+1]
 		if !slices.Contains(allowed, k.Value) {
 			d.report(unknownCode, k, suggest(k.Value, allowed), "unknown key %q in %s", k.Value, what)
+			if s, ok := synonyms[k.Value]; ok {
+				seen[s] = true // already reported as "did you mean"; don't also say it's missing
+			}
 			continue
 		}
 		seen[k.Value] = true
@@ -408,10 +411,10 @@ func (d *decoder) checkRefs(w *Workflow) {
 	}
 	for _, j := range w.Jobs {
 		for _, r := range j.Needs {
-			check(r, fmt.Sprintf("job %q needs", j.Name))
+			check(r, fmt.Sprintf("job %q: needs", j.Name))
 		}
 		for _, c := range j.Consumes {
-			check(c.From, fmt.Sprintf("job %q consumes %q from", j.Name, c.Name))
+			check(c.From, fmt.Sprintf("job %q: consumes %q from", j.Name, c.Name))
 		}
 	}
 }
