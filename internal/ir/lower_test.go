@@ -131,7 +131,7 @@ func TestZones(t *testing.T) {
 
 func TestScopeTableMatchesSpec(t *testing.T) {
 	var a, b []string
-	for k := range scopeResources {
+	for k := range ScopeResources {
 		a = append(a, k)
 	}
 	for k := range spec.PermissionLevels {
@@ -140,6 +140,6 @@ func TestScopeTableMatchesSpec(t *testing.T) {
 	slices.Sort(a)
 	slices.Sort(b)
 	if !slices.Equal(a, b) {
-		t.Errorf("scopeResources has %v, spec.PermissionLevels has %v", a, b)
+		t.Errorf("ScopeResources has %v, spec.PermissionLevels has %v", a, b)
 	}
 }

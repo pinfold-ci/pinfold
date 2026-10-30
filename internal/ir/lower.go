@@ -11,9 +11,9 @@ import (
 // trustedTriggers are the only events whose jobs may be unprivileged (design §4).
 var trustedTriggers = map[string]bool{"push": true, "schedule": true, "manual": true}
 
-// scopeResources maps GitHub permission scopes to abstract resources. It is
+// ScopeResources maps GitHub permission scopes to abstract resources. It is
 // versioned data that mirrors spec.PermissionLevels.
-var scopeResources = map[string]string{
+var ScopeResources = map[string]string{
 	"actions":              "ci.actions",
 	"artifact-metadata":    "artifacts.metadata",
 	"attestations":         "attestations",
@@ -76,7 +76,7 @@ func lowerJob(w *Workflow, j *spec.Job) *Job {
 		if p.Level == "none" {
 			continue
 		}
-		out.Capabilities = append(out.Capabilities, Capability{Resource: scopeResources[p.Scope], Access: Access(p.Level), Source: "declared"})
+		out.Capabilities = append(out.Capabilities, Capability{Resource: ScopeResources[p.Scope], Access: Access(p.Level), Source: "declared"})
 	}
 	usesSecret := false
 	for i, s := range j.Steps {
