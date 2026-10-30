@@ -1,0 +1,24 @@
+Created PATH.
+
+Next steps:
+  1. Edit PATH, then run "pinfold validate".
+
+Repository settings (Pinfold can't set these for you; see design §2, best-effort):
+  2. Make the status check "pinfold/verify" required on your default branch,
+     with GitHub Actions as the expected source. (The generated pinfold-verify
+     workflows post it from milestone M4 onwards.)
+  3. Add CODEOWNERS entries so changes to the spec, the lock and workflows need
+     a maintainer's review:
+
+       /pinfold.yml          @your-org/maintainers
+       /pinfold.lock         @your-org/maintainers
+       /.github/workflows/   @your-org/maintainers
+
+Update bots: leave pinfold's generated files to "pinfold lock --update" (milestone M4).
+  Renovate (renovate.json):
+       "ignorePaths": [".github/workflows/pinfold-*.yml"]
+  Dependabot (.github/dependabot.yml, github-actions entry):
+       exclude-paths:
+         - ".github/workflows/pinfold-*.yml"
+     (Dependabot security updates may ignore exclude-paths; from M4,
+      "pinfold check" reports any edit they make to a generated file.)
