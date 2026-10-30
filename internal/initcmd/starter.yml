@@ -1,0 +1,25 @@
+# pinfold.yml: compiled by `pinfold compile` into .github/workflows/pinfold-*.yml.
+# Check it with `pinfold validate`. Explain any error with `pinfold explain PFxxx`.
+version: 0
+
+workflows:
+
+  # A /label command for maintainers: "/label bug docs" on an issue adds those labels.
+  # The job holds a write token, so it may only run effects (compiler-generated,
+  # input-sanitising steps), never your own scripts.
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      label:
+        runner: ubuntu-24.04
+        if:
+          all:
+            - { comment: { starts_with: "/label " } }
+            - { maintainer: true }
+        permissions: { issues: write }
+        steps:
+          - effect: add_labels
+            target: { context: issue.number }
+            labels: { from_comment_args: true }
+            allowed: [bug, docs, enhancement, question]
+            max: 3

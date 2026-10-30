@@ -9,6 +9,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/codes"
 	"github.com/pinfold-ci/pinfold/internal/diag"
+	"github.com/pinfold-ci/pinfold/internal/initcmd"
 	"github.com/pinfold-ci/pinfold/internal/load"
 	"github.com/pinfold-ci/pinfold/internal/spec"
 	"github.com/pinfold-ci/pinfold/internal/version"
@@ -20,6 +21,7 @@ Usage:
   pinfold <command> [arguments]
 
 Commands:
+  init       create a starter pinfold.yml and print setup steps
   validate   check pinfold.yml and report problems
   schema     print the JSON Schema for pinfold.yml (for editors)
   explain    explain a diagnostic code, e.g. "pinfold explain PF110"
@@ -41,6 +43,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case "version", "--version":
 		fmt.Fprintf(stdout, "pinfold %s\n", version.Version)
 		return 0
+	case "init":
+		return runInit(args[1:], stdout, stderr)
 	case "validate":
 		return runValidate(args[1:], stdout, stderr)
 	case "schema":
@@ -120,4 +124,20 @@ func validate(path string) diag.List {
 	}
 	_, diags = spec.Decode(path, root)
 	return diags
+}
+
+func runInit(args []string, stdout, stderr io.Writer) int {
+	if len(args) > 1 {
+		fmt.Fprintln(stderr, "usage: pinfold init [pinfold.yml]")
+		return 2
+	}
+	path := "pinfold.yml"
+	if len(args) == 1 {
+		path = args[0]
+	}
+	if err := initcmd.Run(path, stdout); err != nil {
+		fmt.Fprintf(stderr, "pinfold init: %v\n", err)
+		return 1
+	}
+	return 0
 }
