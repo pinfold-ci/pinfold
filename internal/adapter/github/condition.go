@@ -7,7 +7,7 @@ import (
 )
 
 // condition renders a structured condition as a GitHub expression. Values are
-// always single-quoted string literals (” escaped), never spliced as code.
+// always single-quoted string literals with quotes doubled, never spliced as code.
 // maintainer is handled by a generated step, so it contributes nothing here.
 func condition(c *ir.Condition) string {
 	switch c.Kind {
