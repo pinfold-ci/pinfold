@@ -86,3 +86,4 @@ jobs:
           go-version-file: go.mod
           cache: false
       - run: go test ./internal/spec -run '^$' -fuzz FuzzLoadDecode -fuzztime 30s
+      - run: go test ./internal/emit -run '^$' -fuzz FuzzRoundTrip -fuzztime 30s

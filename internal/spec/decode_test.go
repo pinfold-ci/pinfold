@@ -108,6 +108,8 @@ func TestDiagnostics(t *testing.T) {
 		{"expression in key", base + "        steps:\n          - run: a\n            env: { \"${{ x }}\": y }\n", []string{"PF113@10:20", "PF201@10:20"}},
 		{"unknown context", base + "        steps:\n          - run: a\n            env: { T_X: { context: github.token } }\n", []string{"PF113@10:36"}},
 		{"value with two kinds", base + "        steps:\n          - run: a\n            env: { T_X: { context: actor, secret: S } }\n", []string{"PF112@10:25"}},
+		{"over-long with key", base + "        steps:\n          - uses: a/b@v1\n            with: { " + strings.Repeat("k", 257) + ": v }\n", []string{"PF113@10:21"}},
+		{"bad with key", base + "        steps:\n          - uses: a/b@v1\n            with: { \"a b\": v }\n", []string{"PF113@10:21"}},
 		{"bool as runner", "version: 0\nworkflows:\n  w: {on: {manual: {}}, jobs: {j: {runner: true, steps: [{run: a}]}}}\n", []string{"PF112@3:44"}},
 		{"steps not a list", base + "        steps: {run: a}\n", []string{"PF112@8:16"}},
 		{"timeout out of range", base + "        timeout-minutes: 1000\n        steps: [{run: a}]\n", []string{"PF113@8:26"}},
