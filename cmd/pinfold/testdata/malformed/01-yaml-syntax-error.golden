@@ -1,0 +1,2 @@
+testdata/malformed/01-yaml-syntax-error.yml:3: error PF101: invalid YAML: did not find expected ',' or '}'
+    hint: check indentation (spaces only, no tabs) and quoting

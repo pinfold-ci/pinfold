@@ -1,0 +1,9 @@
+version: 0
+workflows:
+  ci:
+    on: { push: { branches: [main] } }
+    jobs:
+      build:
+        runner: ubuntu-24.04
+        permissions: write-all
+        steps: [ { run: make } ]

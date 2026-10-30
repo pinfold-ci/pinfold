@@ -1,0 +1,2 @@
+testdata/malformed/06-duplicate-key.yml:9:9: error PF103: duplicate key "runner"
+    hint: remove or rename one of them

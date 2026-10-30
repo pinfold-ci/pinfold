@@ -1,0 +1,2 @@
+testdata/malformed/25-id-token-read.yml:8:34: error PF130: invalid level "read" for permission "id-token"
+    hint: allowed values: write, none

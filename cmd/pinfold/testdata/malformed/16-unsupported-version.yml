@@ -1,0 +1,5 @@
+version: 1
+workflows:
+  ci:
+    on: { push: {} }
+    jobs: { build: { runner: x, steps: [ { run: make } ] } }

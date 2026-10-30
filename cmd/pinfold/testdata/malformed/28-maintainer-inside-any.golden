@@ -1,0 +1,2 @@
+testdata/malformed/28-maintainer-inside-any.yml:10:15: error PF113: maintainer is only allowed at the top level of a job's if: all:
+    hint: put maintainer: true directly under the job's if: all:

@@ -1,0 +1,2 @@
+testdata/malformed/24-permissions-write-all.yml:8:22: error PF130: "write-all" is not accepted; permissions must be declared per scope
+    hint: list each scope you need, e.g. { contents: read }

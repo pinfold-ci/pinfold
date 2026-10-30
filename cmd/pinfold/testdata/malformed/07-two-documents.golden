@@ -1,0 +1,2 @@
+testdata/malformed/07-two-documents.yml:9:1: error PF104: spec contains more than one YAML document
+    hint: remove the "---" separator and keep a single document

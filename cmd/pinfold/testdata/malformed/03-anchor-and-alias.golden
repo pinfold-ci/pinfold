@@ -1,0 +1,4 @@
+testdata/malformed/03-anchor-and-alias.yml:2:9: error PF102: anchor &r is not allowed
+    hint: remove the anchor and write values out in full
+testdata/malformed/03-anchor-and-alias.yml:7:24: error PF102: alias *r is not allowed
+    hint: write the value out in full

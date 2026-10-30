@@ -1,0 +1,10 @@
+# The classic injection: comment text pasted into a shell script.
+version: 0
+workflows:
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      echo:
+        runner: ubuntu-24.04
+        steps:
+          - run: echo "${{ github.event.comment.body }}"

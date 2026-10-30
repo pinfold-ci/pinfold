@@ -1,0 +1,2 @@
+testdata/malformed/27-label-command-injection.yml:13:22: error PF201: GitHub expressions (${{ ... }}) aren't allowed in the spec
+    hint: use a typed value such as { context: issue.number } or { secret: NAME }

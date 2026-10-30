@@ -1,0 +1,2 @@
+testdata/malformed/15-invalid-job-name.yml:6:7: error PF114: invalid job name "Build_Docs"
+    hint: use lowercase letters, digits and hyphens, starting with a letter (e.g. build-docs)

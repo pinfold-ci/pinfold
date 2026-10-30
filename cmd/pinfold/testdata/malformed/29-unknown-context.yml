@@ -1,0 +1,10 @@
+version: 0
+workflows:
+  ci:
+    on: { push: { branches: [main] } }
+    jobs:
+      build:
+        runner: ubuntu-24.04
+        steps:
+          - run: ./notify.sh
+            env: { T_TOKEN: { context: github.token } }

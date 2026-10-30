@@ -1,0 +1,1 @@
+testdata/malformed/13-steps-not-a-list.yml:9:11: error PF112: steps must be a list, not a mapping

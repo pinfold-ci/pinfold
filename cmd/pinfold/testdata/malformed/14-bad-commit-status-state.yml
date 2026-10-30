@@ -1,0 +1,13 @@
+version: 0
+workflows:
+  ci:
+    on: { push: { branches: [main] } }
+    jobs:
+      build:
+        runner: ubuntu-24.04
+        permissions: { statuses: write }
+        steps:
+          - effect: commit_status
+            sha: { context: commit.sha }
+            state: passed
+            context: ci/build

@@ -1,0 +1,2 @@
+testdata/malformed/20-uses-bare-sha.yml:9:19: error PF123: bare commit SHAs are not accepted (actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1)
+    hint: reference a release tag; pinfold lock pins it to a commit and records it in pinfold.lock

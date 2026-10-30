@@ -1,0 +1,2 @@
+testdata/malformed/16-unsupported-version.yml:1:10: error PF115: unsupported spec version "1"
+    hint: set "version: 0"

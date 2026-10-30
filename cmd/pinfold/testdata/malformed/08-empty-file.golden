@@ -1,0 +1,2 @@
+testdata/malformed/08-empty-file.yml: error PF104: spec is empty
+    hint: run "pinfold init" to create a starter spec

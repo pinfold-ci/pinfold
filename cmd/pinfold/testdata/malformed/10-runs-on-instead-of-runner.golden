@@ -1,0 +1,2 @@
+testdata/malformed/10-runs-on-instead-of-runner.yml:7:9: error PF110: unknown key "runs-on" in job "build"
+    hint: did you mean "runner"? (Pinfold's name for "runs-on")

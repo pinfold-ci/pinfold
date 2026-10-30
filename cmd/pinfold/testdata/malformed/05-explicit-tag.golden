@@ -1,0 +1,2 @@
+testdata/malformed/05-explicit-tag.yml:1:10: error PF102: explicit tag !!int is not allowed
+    hint: remove the tag; quote the value if it must be a string
