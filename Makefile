@@ -11,7 +11,7 @@ lint:
 	golangci-lint run
 
 golden:
-	$(GO) test ./cmd/pinfold ./internal/spec -update
+	$(GO) test ./cmd/pinfold ./internal/spec ./internal/ir -update
 
 actionlint:
 	$(GO) run github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION)
