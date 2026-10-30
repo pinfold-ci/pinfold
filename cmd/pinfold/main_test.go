@@ -17,6 +17,10 @@ func TestRun(t *testing.T) {
 		{"no args prints usage", nil, 2, "", "Usage:"},
 		{"version", []string{"version"}, 0, "pinfold 0.0.0-dev\n", ""},
 		{"help", []string{"help"}, 0, "Usage:", ""},
+		{"explain", []string{"explain", "PF110"}, 0, "# PF110: Unknown key", ""},
+		{"explain lower case", []string{"explain", "pf201"}, 0, "# PF201:", ""},
+		{"explain unknown code", []string{"explain", "PF999"}, 2, "", `unknown diagnostic code "PF999"`},
+		{"explain without code", []string{"explain"}, 2, "", "usage: pinfold explain"},
 		{"unknown command", []string{"frobnicate"}, 2, "", `unknown command "frobnicate"`},
 	}
 	for _, tt := range tests {
