@@ -49,6 +49,7 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 	}
 	src = bytes.TrimPrefix(src, []byte("\ufeff"))
 	src = bytes.ReplaceAll(src, []byte("\r\n"), []byte("\n"))
+	src = bytes.ReplaceAll(src, []byte("\r"), []byte("\n")) // YAML treats a lone CR as a line break too
 
 	dec := yaml.NewDecoder(bytes.NewReader(src))
 	var docs []*yaml.Node
@@ -63,7 +64,7 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 		}
 		docs = append(docs, &doc)
 	}
-	if len(docs) == 0 || len(docs[0].Content) == 0 {
+	if len(docs) == 0 || len(docs[0].Content) == 0 || isEmptyNull(docs[0].Content[0]) {
 		return nil, diag.List{codes.New("PF104", at(0, 0), "spec is empty", "run \"pinfold init\" to create a starter spec")}
 	}
 	if len(docs) > 1 {
@@ -81,6 +82,11 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 		return nil, diag.List{codes.New("PF112", at(root.Line, root.Column), "the spec must be a mapping (key: value pairs) at the top level", "start with \"version: 0\" and \"workflows:\"")}
 	}
 	return root, nil
+}
+
+// isEmptyNull reports an implicit null, such as the content of a bare "---".
+func isEmptyNull(n *yaml.Node) bool {
+	return n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == ""
 }
 
 var lineRE = regexp.MustCompile(`^yaml: line (\d+): (.*)$`)

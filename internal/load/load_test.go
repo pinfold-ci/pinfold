@@ -38,6 +38,7 @@ func TestRejected(t *testing.T) {
 		{"nested duplicate key", "w:\n  x: 1\n  x: 2\n", "PF103@3:3"},
 		{"empty file", "", "PF104"},
 		{"only comments", "# nothing\n", "PF104"},
+		{"bare document marker", "---\n", "PF104"},
 		{"two documents", "a: 1\n---\nb: 2\n", "PF104@2:1"},
 		{"not utf-8", "a: \xff\n", "PF105"},
 		{"too large", "a: " + strings.Repeat("x", MaxSize) + "\n", "PF105"},
@@ -82,6 +83,7 @@ func TestLineEndingsAndBOMDontChangeTheTree(t *testing.T) {
 		"crlf":     strings.ReplaceAll(lf, "\n", "\r\n"),
 		"bom":      "\ufeff" + lf,
 		"bom+crlf": "\ufeff" + strings.ReplaceAll(lf, "\n", "\r\n"),
+		"cr":       strings.ReplaceAll(lf, "\n", "\r"),
 	}
 	want, diags := Load("t.yml", []byte(lf))
 	if len(diags) != 0 {
