@@ -1,0 +1,2 @@
+testdata/malformed/31-needs-cycle.yml:7:45: error PF126: workflow "release": jobs depend on each other in a cycle: build → test → build
+    hint: remove "build" from the needs of job "test"

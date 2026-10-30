@@ -1,0 +1,7 @@
+version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      build: { runner: ubuntu-24.04, needs: [test], steps: [ { run: make } ] }
+      test: { runner: ubuntu-24.04, needs: [build], steps: [ { run: make test } ] }

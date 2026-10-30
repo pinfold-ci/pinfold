@@ -1,0 +1,1 @@
+testdata/malformed/33-artifact-not-produced.yml:13:21: error PF128: job "publish" consumes "wheels", but job "build" doesn't produce it

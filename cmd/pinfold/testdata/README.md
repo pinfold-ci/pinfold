@@ -28,3 +28,6 @@
 | 28 | PF113 | `maintainer` gate nested under `any:` |
 | 29 | PF113 | Unknown context (`github.token`) |
 | 30 | several | Many errors in one file, reported in position order |
+| 31 | PF126 | `needs` cycle |
+| 32 | PF127 | Artifact consumed without depending on its producer |
+| 33 | PF128 | Artifact the producer doesn't produce |

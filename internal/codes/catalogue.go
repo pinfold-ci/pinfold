@@ -22,6 +22,9 @@ var catalogue = map[string]Entry{
 	"PF123": {Severity: diag.Error, Title: "Invalid action reference"},
 	"PF124": {Severity: diag.Error, Title: "Reference to an unknown job"},
 	"PF125": {Severity: diag.Error, Title: "Unknown condition"},
+	"PF126": {Severity: diag.Error, Title: "Dependency cycle between jobs"},
+	"PF127": {Severity: diag.Error, Title: "Artifact consumed from a job that isn't a dependency"},
+	"PF128": {Severity: diag.Error, Title: "Artifact not produced by that job"},
 	"PF130": {Severity: diag.Error, Title: "Invalid permission"},
 	"PF201": {Severity: diag.Error, Title: "`${{` isn't allowed in the spec"},
 }
