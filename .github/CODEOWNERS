@@ -1,0 +1,9 @@
+# The lead maintainer must approve changes to everything until more maintainers join.
+*                       @mtauha
+# Security-critical paths (stay owner-approved even after maintainers join).
+/.github/               @mtauha
+/internal/verify/       @mtauha
+/internal/taint/        @mtauha
+/internal/zones/        @mtauha
+/internal/lock/         @mtauha
+/internal/effects/      @mtauha

@@ -1,0 +1,28 @@
+name: Bug report
+description: Something Pinfold does is wrong. For security problems, use SECURITY.md instead.
+labels: ["type/bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "**Security issue?** Don't file it here. Use private vulnerability reporting (see SECURITY.md)."
+  - type: input
+    id: version
+    attributes:
+      label: Pinfold version
+      description: Output of `pinfold version`
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Input spec
+      description: The smallest `pinfold.yml` that shows the problem.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
