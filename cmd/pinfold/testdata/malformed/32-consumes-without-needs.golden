@@ -1,0 +1,2 @@
+testdata/malformed/32-consumes-without-needs.yml:12:35: error PF127: job "publish" consumes "dist" from job "build", which it doesn't depend on
+    hint: add "build" to the needs of job "publish"

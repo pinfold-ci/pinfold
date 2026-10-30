@@ -1,0 +1,13 @@
+version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      build:
+        runner: ubuntu-24.04
+        steps: [ { run: make } ]
+        produces: { dist: dist/ }
+      publish:
+        runner: ubuntu-24.04
+        consumes: { dist: { from: build, to: dist/ } }
+        steps: [ { run: ls dist } ]

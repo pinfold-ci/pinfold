@@ -9,6 +9,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/codes"
 	"github.com/pinfold-ci/pinfold/internal/diag"
+	"github.com/pinfold-ci/pinfold/internal/graph"
 	"github.com/pinfold-ci/pinfold/internal/initcmd"
 	"github.com/pinfold-ci/pinfold/internal/load"
 	"github.com/pinfold-ci/pinfold/internal/spec"
@@ -118,11 +119,17 @@ func runValidate(args []string, stdout, stderr io.Writer) int {
 }
 
 func validate(path string) diag.List {
-	root, diags := load.ReadFile(path)
+	root, loadDiags := load.ReadFile(path)
+	if loadDiags.HasErrors() {
+		return loadDiags
+	}
+	s, diags := spec.Decode(path, root)
 	if diags.HasErrors() {
 		return diags
 	}
-	_, diags = spec.Decode(path, root)
+	_, more := graph.Check(s)
+	diags = append(diags, more...)
+	diags.Sort()
 	return diags
 }
 
