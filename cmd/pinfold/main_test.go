@@ -21,6 +21,8 @@ func TestRun(t *testing.T) {
 		{"explain lower case", []string{"explain", "pf201"}, 0, "# PF201:", ""},
 		{"explain unknown code", []string{"explain", "PF999"}, 2, "", `unknown diagnostic code "PF999"`},
 		{"explain without code", []string{"explain"}, 2, "", "usage: pinfold explain"},
+		{"schema", []string{"schema"}, 0, `"$schema": "https://json-schema.org/draft/2020-12/schema"`, ""},
+		{"schema with argument", []string{"schema", "x"}, 2, "", "usage: pinfold schema"},
 		{"unknown command", []string{"frobnicate"}, 2, "", `unknown command "frobnicate"`},
 	}
 	for _, tt := range tests {

@@ -26,3 +26,7 @@ make check    # everything CI runs offline
 - Output must be deterministic: same input, same bytes.
 - Conventional commits; one change per PR.
 - Never weaken a guarantee in design §2 without an RFC.
+
+## Editor support
+
+`pinfold schema > pinfold.schema.json` writes a JSON Schema for `pinfold.yml`. With the YAML language server, add `# yaml-language-server: $schema=./pinfold.schema.json` at the top of the spec. The schema is a convenience: `pinfold validate` is the authority. `internal/spec/schema_test.go` keeps the schema in step with the decoder.

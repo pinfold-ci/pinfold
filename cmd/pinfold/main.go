@@ -21,6 +21,7 @@ Usage:
 
 Commands:
   validate   check pinfold.yml and report problems
+  schema     print the JSON Schema for pinfold.yml (for editors)
   explain    explain a diagnostic code, e.g. "pinfold explain PF110"
   version    print the compiler version
   help       show this help
@@ -42,6 +43,15 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	case "validate":
 		return runValidate(args[1:], stdout, stderr)
+	case "schema":
+		if len(args) != 1 {
+			fmt.Fprintln(stderr, "usage: pinfold schema")
+			return 2
+		}
+		if _, err := stdout.Write(spec.Schema); err != nil {
+			return 2
+		}
+		return 0
 	case "explain":
 		return runExplain(args[1:], stdout, stderr)
 	case "help", "-h", "--help":
