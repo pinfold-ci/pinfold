@@ -64,6 +64,8 @@ jobs:
           cache: false
       - name: actionlint
         run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - name: actionlint (generated workflow goldens)
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12 internal/adapter/github/testdata/pinfold-*.yml
       - name: zizmor
         uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
         with:
