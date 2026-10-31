@@ -3,9 +3,10 @@
 package ir
 
 import (
+	"slices"
+
 	"github.com/pinfold-ci/pinfold/internal/diag"
 	"github.com/pinfold-ci/pinfold/internal/spec"
-	"slices"
 )
 
 // Value, Condition and Effect are shared with the source format: they are
