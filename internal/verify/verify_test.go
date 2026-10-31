@@ -178,6 +178,11 @@ func TestArtifactBindingCantBeRemoved(t *testing.T) {
 		{"download by another bind step's id", strings.Replace(release, "${{ steps.pinfold_bind_dist.outputs.id }}", "${{ steps.pinfold_bind_other.outputs.id }}", 1), "PF908"},
 		{"bind step loses its id", strings.Replace(release, "        id: pinfold_bind_dist\n", "", 1), "PF908"},
 		{"download id plus a literal", strings.Replace(release, "'${{ steps.pinfold_bind_dist.outputs.id }}'", "'${{ steps.pinfold_bind_dist.outputs.id }},1'", 1), "PF908"},
+		// Audit F1: feeder jobs only download through the generated bind + download pair too.
+		{"hand-written download in a feeder", strings.Replace(release, "      - name: 'pinfold: checkout' # pinfold:generated release/build/step-1\n",
+			"      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333\n        with:\n          name: wheels\n          path: wheels/\n      - name: 'pinfold: checkout' # pinfold:generated release/build/step-1\n", 1), "PF908"},
+		{"hand-written download in another case", strings.Replace(release, "      - name: 'pinfold: checkout' # pinfold:generated release/build/step-1\n",
+			"      - uses: Actions/Download-Artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333\n        with:\n          name: wheels\n          path: wheels/\n      - name: 'pinfold: checkout' # pinfold:generated release/build/step-1\n", 1), "PF908"},
 		{"bind output used elsewhere", strings.Replace(release, "          T_TAG: '${{ github.ref_name }}'\n", "          T_TAG: '${{ github.ref_name }}'\n          PINFOLD_X: '${{ steps.pinfold_bind_dist.outputs.id }}'\n", 1), "PF904"},
 	}
 	for _, tt := range tests {

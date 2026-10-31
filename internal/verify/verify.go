@@ -109,13 +109,14 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		v.containers(job)
 		if j.Zone == ir.ZonePrivileged {
 			v.scripts(job)
-			v.bindings(job, j.Name)
 			if !w.UnsafeRun {
 				v.declarative(job, j.Name)
 			}
 		}
 		if j.Zone == ir.ZonePrivileged || j.Zone == ir.ZoneFeeder {
 			v.caches(job, j.Name, j.Zone)
+			// A feeder's downloads reach the privileged job too (audit F1).
+			v.bindings(job, j.Name)
 		}
 		if hasMaintainer(j.If) {
 			v.gate(job, j.Name)
@@ -377,7 +378,7 @@ func (v *verifier) scripts(job *yaml.Node) {
 	}
 }
 
-// bindings checks that, in a privileged job, every artifact download is
+// bindings checks that, in a privileged or feeder job, every artifact download is
 // immediately preceded by a generated binding step for the same artifact.
 func (v *verifier) bindings(job *yaml.Node, name string) {
 	steps := get(job, "steps")
@@ -387,7 +388,7 @@ func (v *verifier) bindings(job *yaml.Node, name string) {
 	bind := effects.Scripts()[effects.Bind]
 	for i, s := range steps.Content {
 		uses := get(s, "uses")
-		if uses == nil || !strings.HasPrefix(uses.Value, "actions/download-artifact@") {
+		if uses == nil || !isDownloadArtifact(uses.Value) {
 			continue
 		}
 		// The download fetches the artifact id that the bind step right before
@@ -624,4 +625,14 @@ func getFold(m *yaml.Node, key string) *yaml.Node {
 		}
 	}
 	return nil
+}
+
+// isDownloadArtifact matches actions/download-artifact in any case and with
+// any version or sub-path: GitHub resolves owner and repository names without
+// regard to case.
+func isDownloadArtifact(uses string) bool {
+	path, _, _ := strings.Cut(uses, "@")
+	owner, rest, _ := strings.Cut(path, "/")
+	repo, _, _ := strings.Cut(rest, "/")
+	return strings.EqualFold(owner, "actions") && strings.EqualFold(repo, "download-artifact")
 }

@@ -32,6 +32,7 @@ var catalogue = map[string]Entry{
 	"PF903": {Severity: diag.Error, Title: "Internal error: unsafe checkout in generated output"},
 	"PF904": {Severity: diag.Error, Title: "Internal error: expression in a forbidden place"},
 	"PF306": {Severity: diag.Error, Title: "Input not supported by a pinned container"},
+	"PF307": {Severity: diag.Error, Title: "Artifact download outside consumes:"},
 	"PF905": {Severity: diag.Error, Title: "Internal error: container image not pinned by the registry"},
 	"PF301": {Severity: diag.Error, Title: "User script in a job that holds credentials"},
 	"PF302": {Severity: diag.Error, Title: "Cache restore in a job that holds credentials"},
