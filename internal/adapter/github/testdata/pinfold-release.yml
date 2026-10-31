@@ -218,6 +218,7 @@ jobs:
         env:
           INPUT_ATTESTATIONS: 'true'
           INPUT_PACKAGES_DIR: dist
+          INPUT_PASSWORD: ''
           INPUT_PRINT_HASH: 'true'
           INPUT_REPOSITORY_URL: 'https://upload.pypi.org/legacy/'
           INPUT_SKIP_EXISTING: 'false'
