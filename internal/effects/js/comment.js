@@ -9,6 +9,9 @@ let body = S.sanitizeBody(S.renderTemplate(cfg('BODY', ''), values), { allowMent
 const sticky = cfg('STICKY', '');
 if (sticky) {
   const marker = '<!-- pinfold:sticky:' + sticky + ' -->';
+  // Close a code fence the body left open, or the marker would show as code.
+  const fences = body.split('\n').filter((l) => /^ {0,3}(```|~~~)/.test(l)).length;
+  if (fences % 2 === 1) body += '\n```';
   body = body + '\n' + marker;
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
   // Match on the marker AND our bot author: anyone can paste the marker.
