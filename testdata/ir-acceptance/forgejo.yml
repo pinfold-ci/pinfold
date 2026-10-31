@@ -1,0 +1,115 @@
+# IR acceptance fixture: forgejo
+# Data only. Every entry is UNVERIFIED until the v0.2 design checks it against official docs.
+platform: forgejo
+status: unverified
+summary: "Forgejo Actions is designed to be close to GitHub Actions; the main questions are which events exist, whether `permissions:` is enforced, and how actions are resolved."
+constructs:
+  trigger.push:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.schedule:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.manual:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.issue_comment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.issues:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.pull_request_target:
+    maps: unverified
+    question: "Is `pull_request_target` supported, with base-branch workflow semantics?"
+  trigger.pull_request_review:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.pull_request_review_comment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.discussion:
+    maps: unverified
+    question: "Forgejo has no Discussions feature as far as we know; confirm."
+  trigger.discussion_comment:
+    maps: unverified
+    question: "As above."
+  job.runner:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.needs:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.if:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.permissions:
+    maps: unverified
+    question: "Is the job-level `permissions:` key enforced on the automatic token, or accepted and ignored?"
+  job.environment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.timeout-minutes:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.concurrency:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.produces:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.consumes:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  step.checkout:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  step.run:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  step.uses:
+    maps: unverified
+    question: "How are bare `owner/repo@ref` actions resolved (default actions URL, mirror)? Can a ref be pinned to a commit and verified?"
+  effect.comment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.add_labels:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.remove_labels:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.commit_status:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.release:
+    maps: unverified
+    question: "Release API shape and the scope it needs."
+  gate.maintainer:
+    maps: unverified
+    question: "Which API returns a user's permission level on a repository, and is it readable with the job token?"
+guarantees:
+  G1-privileged-jobs-declarative:
+    holds: unverified
+    note: "Depends on the effects runtime being available (github-script equivalent or direct API calls)."
+  G2-no-tainted-expressions:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G3-tainted-by-default:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G4-checkout-hardening:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G5-no-cache-with-credentials:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G6-artifact-digest-binding:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G7-exact-permissions:
+    holds: unverified
+    note: "Weakens if `permissions:` isn't enforced."
+  G8-pinned-actions-match-lock:
+    holds: unverified
+    note: "Depends on action resolution (`step.uses`); may need the lock to record the actions host."

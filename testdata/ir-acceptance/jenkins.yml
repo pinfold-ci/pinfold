@@ -1,0 +1,115 @@
+# IR acceptance fixture: jenkins
+# Data only. Every entry is UNVERIFIED until the v0.2 design checks it against official docs.
+platform: jenkins
+status: unverified
+summary: "Jenkins pipelines are code (Groovy). The design keeps Jenkins on paper only; these entries mostly record that."
+constructs:
+  trigger.push:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.schedule:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.manual:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.issue_comment:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.issues:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.pull_request_target:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.pull_request_review:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.pull_request_review_comment:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.discussion:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  trigger.discussion_comment:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.runner:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.needs:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.if:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.permissions:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.environment:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.timeout-minutes:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.concurrency:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.produces:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.consumes:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  step.checkout:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  step.run:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  step.uses:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  effect.comment:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  effect.add_labels:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  effect.remove_labels:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  effect.commit_status:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  effect.release:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  gate.maintainer:
+    maps: unverified
+    question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+guarantees:
+  G1-privileged-jobs-declarative:
+    holds: unverified
+    note: "Not assessed."
+  G2-no-tainted-expressions:
+    holds: unverified
+    note: "Not assessed."
+  G3-tainted-by-default:
+    holds: unverified
+    note: "Not assessed."
+  G4-checkout-hardening:
+    holds: unverified
+    note: "Not assessed."
+  G5-no-cache-with-credentials:
+    holds: unverified
+    note: "Not assessed."
+  G6-artifact-digest-binding:
+    holds: unverified
+    note: "Not assessed."
+  G7-exact-permissions:
+    holds: unverified
+    note: "Not assessed."
+  G8-pinned-actions-match-lock:
+    holds: unverified
+    note: "Not assessed."
