@@ -15,6 +15,7 @@ import (
 	"github.com/pinfold-ci/pinfold/internal/graph"
 	"github.com/pinfold-ci/pinfold/internal/ir"
 	"github.com/pinfold-ci/pinfold/internal/load"
+	"github.com/pinfold-ci/pinfold/internal/permissions"
 	"github.com/pinfold-ci/pinfold/internal/spec"
 	"github.com/pinfold-ci/pinfold/internal/taint"
 	"github.com/pinfold-ci/pinfold/internal/verify"
@@ -51,6 +52,7 @@ func Front(path string) (*ir.Program, []byte, diag.List) {
 	p := ir.Lower(s)
 	diags = append(diags, zones.Check(s, p)...)
 	diags = append(diags, taint.Check(s, p)...)
+	diags = append(diags, permissions.Check(s, p)...)
 	diags.Sort()
 	if diags.HasErrors() {
 		return nil, nil, diags

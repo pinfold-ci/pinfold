@@ -8,7 +8,7 @@ workflows:
     jobs:
       build:
         runner: ubuntu-24.04
-        permissions: { issues: write }
+        permissions: { contents: read, issues: write }
         steps:
           - checkout: {}
           - run: make test

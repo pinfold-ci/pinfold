@@ -1,2 +1,4 @@
+testdata/incidents/tj-actions-unreviewed-action.yml:12:24: warning PF402: job "changes" declares contents: write, but no step in it needs write access
+    hint: remove it or lower it to read: every write permission (and an OIDC token) makes the job privileged
 testdata/incidents/tj-actions-unreviewed-action.yml:14:13: error PF304: job "changes" holds credentials (contents: write), and tj-actions/changed-files@v44 isn't in Pinfold's action registry
     hint: only reviewed actions run in jobs that hold credentials; see the registry, or move this step to an unprivileged job

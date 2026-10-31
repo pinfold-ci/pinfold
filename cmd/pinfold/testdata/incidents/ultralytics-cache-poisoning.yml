@@ -8,6 +8,7 @@ workflows:
     jobs:
       build:
         runner: ubuntu-24.04
+        permissions: { contents: read }
         steps:
           - checkout: {}
           - uses: actions/setup-python@v7

@@ -1,2 +1,2 @@
-testdata/incidents/ultralytics-cache-poisoning.yml:13:13: error PF305: job "build" feeds a privileged job, and actions/setup-python@v7 restores a cache
+testdata/incidents/ultralytics-cache-poisoning.yml:14:13: error PF305: job "build" feeds a privileged job, and actions/setup-python@v7 restores a cache
     hint: remove caching: a poisoned cache here would reach the privileged job through the artifact

@@ -1,5 +1,7 @@
 testdata/incidents/nx-pr-title-injection.yml:10:11: warning PF311: GitHub blocks pull_request_target by default in public repositories from 2026-12-02, so this workflow may never run
     hint: keep this workflow for private repositories or ones with an Actions event policy that allows pull_request_target
+testdata/incidents/nx-pr-title-injection.yml:14:24: warning PF402: job "check" declares pull-requests: write, but no step in it needs write access
+    hint: remove it or lower it to read: every write permission (and an OIDC token) makes the job privileged
 testdata/incidents/nx-pr-title-injection.yml:16:13: error PF301: job "check" holds credentials (privileged trigger, pull-requests: write), so it can't run a user script
     hint: move the script to an unprivileged job that produces an artifact, and consume it here; or use an effect
 testdata/incidents/nx-pr-title-injection.yml:16:13: error PF313: workflow "validate-title" runs on pull_request_target, which doesn't allow a run step

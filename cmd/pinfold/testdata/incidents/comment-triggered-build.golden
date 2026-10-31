@@ -1,2 +1,4 @@
+testdata/incidents/comment-triggered-build.yml:11:40: warning PF402: job "build" declares issues: write, but no step in it needs write access
+    hint: remove it or lower it to read: every write permission (and an OIDC token) makes the job privileged
 testdata/incidents/comment-triggered-build.yml:14:13: error PF301: job "build" holds credentials (privileged trigger, issues: write), so it can't run a user script
     hint: move the script to an unprivileged job that produces an artifact, and consume it here; or use an effect
