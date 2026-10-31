@@ -184,15 +184,15 @@ func (v *verifier) checkouts(job *yaml.Node) {
 	}
 	for _, s := range steps.Content {
 		uses := get(s, "uses")
-		if uses == nil || !strings.HasPrefix(uses.Value, "actions/checkout@") {
+		if uses == nil || !strings.HasPrefix(strings.ToLower(uses.Value), "actions/checkout@") {
 			continue
 		}
 		with := get(s, "with")
-		if pc := get(with, "persist-credentials"); pc == nil || pc.Tag != "!!bool" || pc.Value != "false" {
+		if pc := getFold(with, "persist-credentials"); pc == nil || pc.Tag != "!!bool" || pc.Value != "false" {
 			v.report("PF903", uses, "checkout without persist-credentials: false")
 		}
 		for _, k := range []string{"repository", "ref"} {
-			if n := get(with, k); n != nil {
+			if n := getFold(with, k); n != nil {
 				v.report("PF903", n, "checkout overrides %s", k)
 			}
 		}
@@ -305,15 +305,26 @@ func (v *verifier) caches(job *yaml.Node, name string, zone ir.Zone) {
 		if uses == nil {
 			continue
 		}
-		restores := strings.HasPrefix(uses.Value, "actions/cache@") || strings.HasPrefix(uses.Value, "actions/cache/restore@")
-		if e, _, err := registry.Lookup(uses.Value); err == nil && e != nil {
+		if slices.Contains(generatedUses, uses.Value) || strings.HasPrefix(uses.Value, "docker://") {
+			continue // generated, or a container checked by PF905
+		}
+		// Default deny: only a reviewed registry action can be shown not to
+		// restore a cache.
+		restores := true
+		if e, reviewed, err := registry.Lookup(uses.Value); err == nil && e != nil && reviewed {
 			switch e.RestoresCache {
 			case "always":
-				restores = true
 			case "never":
+				restores = false
 			default:
-				if in := get(get(s, "with"), e.RestoresCache); in != nil && in.Value != "" && in.Value != "false" {
-					restores = true
+				restores = false
+				if with := get(s, "with"); with != nil && with.Kind == yaml.MappingNode {
+					for i := 0; i+1 < len(with.Content); i += 2 {
+						k, in := with.Content[i], with.Content[i+1]
+						if strings.EqualFold(k.Value, e.RestoresCache) && in.Value != "" && in.Value != "false" {
+							restores = true
+						}
+					}
 				}
 			}
 		}
@@ -417,4 +428,18 @@ func sortedPairs(m map[string]string) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// getFold is get with a case-insensitive key match: GitHub matches action
+// input names without regard to case.
+func getFold(m *yaml.Node, key string) *yaml.Node {
+	if m == nil || m.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		if strings.EqualFold(m.Content[i].Value, key) {
+			return m.Content[i+1]
+		}
+	}
+	return nil
 }

@@ -112,6 +112,12 @@ func Lookup(uses string) (e *Entry, reviewed bool, err error) {
 	}
 	e = f.Actions[r.Name]
 	if e == nil {
+		// GitHub resolves owner/repo without regard to case. A registry action
+		// written in another case would dodge checks that match its exact name,
+		// so it is an error rather than an unknown action.
+		if f.Actions[strings.ToLower(r.Name)] != nil {
+			return nil, false, fmt.Errorf("write %q in lower case, as in the registry", r.Name)
+		}
 		return nil, false, nil
 	}
 	for _, m := range e.Majors {

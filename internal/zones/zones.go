@@ -111,6 +111,12 @@ func (c *checker) uses(w *spec.Workflow, iw *ir.Workflow, j *spec.Job, zone ir.Z
 		}
 	}
 	if e == nil || !reviewed {
+		// The registry can't say whether this action restores a cache, so in
+		// zones where the cache rule applies it is refused (default deny). In a
+		// guarded privileged job PF304 has already said so.
+		if !guarded {
+			c.cacheRule(j, zone, st, "isn't a reviewed registry action, so Pinfold can't show it doesn't restore a cache", true)
+		}
 		return
 	}
 	// Checkout hardening and the cache rule are separate §2 rows: unsafe_run
@@ -118,21 +124,31 @@ func (c *checker) uses(w *spec.Workflow, iw *ir.Workflow, j *spec.Job, zone ir.Z
 	privilegedContext := zone == ir.ZonePrivileged || iw.Class == ir.Privileged
 	if privilegedContext {
 		for _, k := range sortedKeys(st.With) {
-			if slices.Contains(e.ForbiddenInPrivileged, k) {
+			if slices.ContainsFunc(e.ForbiddenInPrivileged, func(f string) bool { return strings.EqualFold(f, k) }) {
 				c.add("PF303", st.With[k].Span, "remove it; in privileged workflows Pinfold only checks out the trusted ref, without persisted credentials",
 					"%s input %q isn't allowed in a privileged context", st.Uses, k)
 			}
 		}
 	}
 	if restores(e, st) {
-		switch zone {
-		case ir.ZonePrivileged:
-			c.add("PF302", st.Span, "remove caching from this job; caches can be poisoned by less trusted runs",
-				"job %q holds credentials, and %s restores a cache", j.Name, st.Uses)
-		case ir.ZoneFeeder:
-			c.add("PF305", st.Span, "remove caching: a poisoned cache here would reach the privileged job through the artifact",
-				"job %q feeds a privileged job, and %s restores a cache", j.Name, st.Uses)
-		}
+		c.cacheRule(j, zone, st, "restores a cache", false)
+	}
+}
+
+// cacheRule reports a step that restores (or may restore) a cache in a job
+// where design §2 forbids it.
+func (c *checker) cacheRule(j *spec.Job, zone ir.Zone, st *spec.Step, what string, unknown bool) {
+	privHint, feedHint := "remove caching from this job; caches can be poisoned by less trusted runs",
+		"remove caching: a poisoned cache here would reach the privileged job through the artifact"
+	if unknown {
+		privHint = "use a reviewed registry action, or move this step to a job that doesn't hold credentials"
+		feedHint = "use a reviewed registry action, or move this step to a job whose output doesn't reach a privileged job"
+	}
+	switch zone {
+	case ir.ZonePrivileged:
+		c.add("PF302", st.Span, privHint, "job %q holds credentials, and %s %s", j.Name, st.Uses, what)
+	case ir.ZoneFeeder:
+		c.add("PF305", st.Span, feedHint, "job %q feeds a privileged job, and %s %s", j.Name, st.Uses, what)
 	}
 }
 
@@ -144,8 +160,13 @@ func restores(e *registry.Entry, st *spec.Step) bool {
 	case "always":
 		return true
 	default:
-		v, ok := st.With[e.RestoresCache]
-		return ok && v.Text != "" && v.Text != "false"
+		// Input names are case-insensitive on GitHub, so Cache: counts as cache:.
+		for k, v := range st.With {
+			if strings.EqualFold(k, e.RestoresCache) && v.Text != "" && v.Text != "false" {
+				return true
+			}
+		}
+		return false
 	}
 }
 
