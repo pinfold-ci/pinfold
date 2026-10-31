@@ -104,6 +104,13 @@ func check(j *spec.Job, ij *ir.Job, diags *diag.List) {
 		}
 	}
 	for _, p := range j.Permissions {
+		// Design §4: an unprivileged job gets contents: read at most. Other
+		// read scopes (packages, security-events, ...) would hand code that may
+		// be attacker-controlled more to read than the design promises.
+		if ij.Zone != ir.ZonePrivileged && p.Level == "read" && p.Scope != "contents" {
+			diags.Add(codes.New("PF403", p.Span, fmt.Sprintf("job %q is unprivileged, so it may declare contents: read at most, not %s: read", j.Name, p.Scope),
+				"remove it, or move the work that needs it to a privileged job (which can't run your scripts)"))
+		}
 		if p.Level == "write" && !needsWrite[ir.ScopeResources[p.Scope]] {
 			diags.Add(codes.New("PF402", p.Span, fmt.Sprintf("job %q declares %s: write, but no step in it needs write access", j.Name, p.Scope),
 				"remove it or lower it to read: every write permission (and an OIDC token) makes the job privileged"))

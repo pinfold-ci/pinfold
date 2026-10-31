@@ -1,2 +1,2 @@
-testdata/malformed/40-labels-from-comment-without-command.yml:10:13: error PF122: effect add_labels takes labels from the comment, but job "label" has no comment.starts_with condition
+testdata/malformed/40-labels-from-comment-without-command.yml:11:13: error PF122: effect add_labels takes labels from the comment, but job "label" has no comment.starts_with condition
     hint: add if: { all: [ { comment: { starts_with: "/label " } }, { maintainer: true } ] }

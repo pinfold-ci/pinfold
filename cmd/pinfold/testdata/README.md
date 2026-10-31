@@ -38,3 +38,5 @@
 | 38 | PF204 | Secret passed to an input that isn't a secret input |
 | 39 | PF122 | Comment template with an unknown placeholder (`{{ github.token }}`) |
 | 40 | PF122 | `from_comment_args` without a `comment.starts_with` condition |
+| 41 | PF122 | `from_comment_args` without `maintainer: true` (anyone could choose labels) |
+| 42 | PF403 | Unprivileged job declaring a read scope other than `contents` |

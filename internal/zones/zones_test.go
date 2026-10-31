@@ -1,6 +1,7 @@
 package zones
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -197,5 +198,34 @@ workflows:
 `
 	if got := check(t, src); strings.Join(got, " ") != "PF305" {
 		t.Errorf("codes = %v, want [PF305]: deps feeds build, which feeds publish", got)
+	}
+}
+
+// Round-1 review (#32), finding A4: a gate that denies only skips its own job.
+func TestNeedsGatedJob(t *testing.T) {
+	src := `version: 0
+workflows:
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      check:
+        runner: x
+        if: { all: [ { maintainer: true } ] }
+        permissions: { issues: write }
+        steps:
+          - { effect: add_labels, target: { context: issue.number }, labels: [triaged], allowed: [triaged] }
+      ack:
+        runner: x
+        needs: [check]
+        ` + "%s" + `
+        permissions: { issues: write }
+        steps:
+          - { effect: comment, target: { context: issue.number }, body: "Triaged." }
+`
+	if got := strings.Join(check(t, fmt.Sprintf(src, "")), " "); got != "PF314" {
+		t.Errorf("ungated dependant: codes = %q, want PF314", got)
+	}
+	if got := strings.Join(check(t, fmt.Sprintf(src, "if: { all: [ { maintainer: true } ] }")), " "); got != "" {
+		t.Errorf("gated dependant: codes = %q, want none", got)
 	}
 }

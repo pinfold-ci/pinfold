@@ -50,6 +50,18 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 		c.add("PF310", w.Span, "remove unsafe_run once the job no longer needs it",
 			"workflow %q sets unsafe_run: Pinfold's trust-zone guarantees are off for it, and the generated file says so", w.Name)
 	}
+	gated := map[string]bool{}
+	for _, j := range w.Jobs {
+		gated[j.Name] = maintainerGated(j.If)
+	}
+	for _, j := range w.Jobs {
+		for _, n := range j.Needs {
+			if gated[n.Name] && !gated[j.Name] {
+				c.add("PF314", n.Span, "add { maintainer: true } to this job's if: as well",
+					"job %q needs %q, which is behind the maintainer gate; a denied gate only skips that job's steps, so %q still runs", j.Name, n.Name, j.Name)
+			}
+		}
+	}
 	for ji, j := range w.Jobs {
 		zone := iw.Jobs[ji].Zone
 		for _, st := range j.Steps {
@@ -59,6 +71,18 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 			c.step(w, iw, j, zone, st)
 		}
 	}
+}
+
+// maintainerGated reports a job whose if: mentions maintainer: true anywhere,
+// which is what makes the adapter generate the gate (verifier PF907).
+func maintainerGated(c *spec.Condition) bool {
+	if c == nil {
+		return false
+	}
+	if c.Kind == "maintainer" && c.Flag {
+		return true
+	}
+	return slices.ContainsFunc(c.All, maintainerGated) || slices.ContainsFunc(c.Any, maintainerGated)
 }
 
 // metadataOnly enforces the pull_request_target allowlist: label and comment effects only.

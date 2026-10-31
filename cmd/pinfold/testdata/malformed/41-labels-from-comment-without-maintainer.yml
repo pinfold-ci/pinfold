@@ -1,0 +1,14 @@
+version: 0
+workflows:
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      label:
+        runner: ubuntu-24.04
+        if: { comment: { starts_with: "/label " } }
+        permissions: { issues: write }
+        steps:
+          - effect: add_labels
+            target: { context: issue.number }
+            labels: { from_comment_args: true }
+            allowed: [bug]

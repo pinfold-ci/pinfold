@@ -47,6 +47,8 @@ var catalogue = map[string]Entry{
 	"PF204": {Severity: diag.Error, Title: "Secret passed to an input that isn't a secret input"},
 	"PF401": {Severity: diag.Error, Title: "Missing permission"},
 	"PF402": {Severity: diag.Warning, Title: "Write permission nothing uses"},
+	"PF403": {Severity: diag.Error, Title: "Read permission beyond contents in an unprivileged job"},
+	"PF314": {Severity: diag.Warning, Title: "Job depends on a gated job without its own gate"},
 	"PF906": {Severity: diag.Error, Title: "Internal error: unrecognised script in a privileged job"},
 	"PF907": {Severity: diag.Error, Title: "Internal error: maintainer gate missing or bypassable"},
 	"PF908": {Severity: diag.Error, Title: "Internal error: artifact download without binding"},

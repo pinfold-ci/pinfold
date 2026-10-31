@@ -1,0 +1,2 @@
+testdata/malformed/41-labels-from-comment-without-maintainer.yml:11:13: error PF122: effect add_labels takes labels from the comment, but job "label" doesn't require a maintainer
+    hint: add { maintainer: true } under the job's if: all:, so only people with write access choose labels

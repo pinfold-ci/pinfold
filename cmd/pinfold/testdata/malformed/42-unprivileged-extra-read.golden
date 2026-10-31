@@ -1,0 +1,2 @@
+testdata/malformed/42-unprivileged-extra-read.yml:8:40: error PF403: job "test" is unprivileged, so it may declare contents: read at most, not packages: read
+    hint: remove it, or move the work that needs it to a privileged job (which can't run your scripts)
