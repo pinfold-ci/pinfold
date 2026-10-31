@@ -38,7 +38,10 @@ const PINFOLD_SANITIZER = (() => {
     // even after a word character. Entities are already escaped (escapeHtml).
     s = s.replace(/#(\d+)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
     s = s.replace(/\bGH-(\d+)/gi, (m, num) => (refs.has(num) ? m : m.slice(0, 3) + '\u200b' + num));
-    s = s.replace(/(?<!\w)@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\/[A-Za-z0-9._-]+)?)/g, (m, name) =>
+    // Every @name, whatever precedes it: GitHub notifies for _@user_ (the _
+    // is a word character), so no lookbehind (security audit NV1). This also
+    // breaks e-mail autolinks, which costs nothing in a bot comment.
+    s = s.replace(/@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\/[A-Za-z0-9._-]+)?)/g, (m, name) =>
       mentions.has(name.toLowerCase()) ? m : '@\u200b' + name);
     return s;
   }

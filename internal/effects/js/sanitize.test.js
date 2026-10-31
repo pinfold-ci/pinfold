@@ -9,7 +9,7 @@ function rng(seed) {
   let x = seed >>> 0 || 1;
   return () => ((x ^= x << 13), (x ^= x >>> 17), (x ^= x << 5), (x >>> 0) / 4294967296);
 }
-const pieces = ['``', '`@', '`#1`', '<!--', '-->', '<!-', '->', '-', '@', '@octocat', '@org/team', '#', '#12', '`', ' ', '\n', '\r', '\t',
+const pieces = ['_', '__', '*', '~', 'a_', '``', '`@', '`#1`', '<!--', '-->', '<!-', '->', '-', '@', '@octocat', '@org/team', '#', '#12', '`', ' ', '\n', '\r', '\t',
   'http://x.y/', 'https://a.b/c?d=e', 'a', 'Z', '9', 'é', '日', '\u0000', '\u0007', '\u001b', '\u007f', '\u0085',
   '​', '‎', ' ', '‮', '⁦', '﻿', '&#', '<', '>', '<script>', '"', "'", '$', '{{ actor }}', '😀'];
 function randomString(r, n) {
@@ -34,7 +34,8 @@ test('sanitizeBody invariants hold for random input', () => {
     assert.ok(!out.includes('\r'), `CR survived: ${ctx}`);
     assert.ok(bytes(out) <= maxBytes, `over ${maxBytes} bytes: ${ctx}`);
     assert.ok((out.match(/https?:\/\//g) || []).length <= maxLinks, `too many links: ${ctx}`);
-    assert.ok(!/(?<!\w)@(?!allowed\b)[A-Za-z0-9]/.test(out), `bare @mention survived: ${ctx}`);
+    // Any @name counts, whatever precedes it: GitHub notifies for _@user_ (audit NV1, confirmed live).
+    assert.ok(!/@(?!allowed\b)[A-Za-z0-9]/.test(out), `bare @mention survived: ${ctx}`);
     assert.ok(!/(?<!&)#\d/.test(out), `bare #ref survived: ${ctx}`);
     assert.strictEqual(S.sanitizeBody(out, { maxBytes, maxLinks, allowMentions: ['allowed'] }), out, `not idempotent: ${ctx}`);
   }
@@ -44,6 +45,22 @@ test('allowlisted mention stays a mention', () => {
   assert.strictEqual(S.sanitizeBody('thanks @octocat!', { allowMentions: ['OctoCat'] }), 'thanks @octocat!');
   assert.strictEqual(S.sanitizeBody('thanks @octocat!'), 'thanks @\u200boctocat!');
   assert.strictEqual(S.sanitizeBody('see org/repo#12 and x'), 'see org/repo#\u200b12 and x');
+});
+
+// Security audit NV1, confirmed on github.com: a mention inside _emphasis_
+// notifies. The sanitiser used to skip @ after a word character, and _ is one.
+test('mentions after a word character are neutralised', () => {
+  for (const [input, want] of [
+    ['_@victim_', '_@\u200bvictim_'],
+    ['__@victim__', '__@\u200bvictim__'],
+    ['_@org/team_', '_@\u200borg/team_'],
+    ['x@victim', 'x@\u200bvictim'],
+    ['9@victim', '9@\u200bvictim'],
+  ]) {
+    assert.strictEqual(S.sanitizeBody(input), want, JSON.stringify(input));
+  }
+  // The allowlisted actor stays a mention in emphasis too.
+  assert.strictEqual(S.sanitizeBody('_@octocat_', { allowMentions: ['octocat'] }), '_@octocat_');
 });
 
 // Round-1 adversarial review (#32), finding B1: entities that render as @ or #.
