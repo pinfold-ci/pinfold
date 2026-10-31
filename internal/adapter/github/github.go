@@ -134,13 +134,25 @@ func jobNeeds(j *ir.Job) []string {
 	return needs
 }
 
-// permissions maps capabilities back to scopes; an empty set is {}.
+// permissions maps capabilities back to scopes; an empty set is {}. Each scope
+// carries a comment saying why it's granted.
 func permissions(caps []ir.Capability) emit.Node {
 	scopes := map[string]string{}
+	why := map[string][]string{}
 	for scope, res := range ir.ScopeResources {
 		for _, c := range caps {
-			if c.Resource == res && (scopes[scope] == "" || c.Access == ir.Write) {
+			if c.Resource != res {
+				continue
+			}
+			if scopes[scope] == "" || c.Access == ir.Write {
 				scopes[scope] = string(c.Access)
+			}
+			reason := "declared in the spec"
+			if c.Source != "declared" {
+				reason = "needed by " + c.Source
+			}
+			if !slices.Contains(why[scope], reason) {
+				why[scope] = append(why[scope], reason)
 			}
 		}
 	}
@@ -154,7 +166,8 @@ func permissions(caps []ir.Capability) emit.Node {
 	sort.Strings(keys)
 	m := emit.Map{}
 	for _, k := range keys {
-		m = append(m, emit.Pair{Key: k, Value: emit.Str(scopes[k])})
+		sort.Strings(why[k])
+		m = append(m, emit.Pair{Key: k, Value: emit.Str(scopes[k]), Comment: strings.Join(why[k], "; ")})
 	}
 	return m
 }

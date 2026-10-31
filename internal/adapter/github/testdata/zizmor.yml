@@ -1,0 +1,10 @@
+# zizmor configuration for the generated-workflow goldens only (passed with
+# --config in CI). Every ignore is an expected finding with a written
+# justification in docs/zizmor-expected-findings.md.
+rules:
+  dangerous-triggers:
+    ignore:
+      - pinfold-triage.yml
+  unpinned-uses:
+    ignore:
+      - pinfold-release.yml

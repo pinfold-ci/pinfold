@@ -12,7 +12,7 @@ jobs:
     if: '(startsWith(github.event.comment.body, ''/label ''))'
     runs-on: ubuntu-24.04
     permissions:
-      issues: write
+      issues: write # declared in the spec
     steps:
       - name: 'pinfold: not implemented: the maintainer gate arrives in milestone M3' # pinfold:generated triage/label/maintainer-gate
         run: |
