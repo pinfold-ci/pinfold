@@ -48,8 +48,15 @@ func checkContainerInputs(st *spec.Step, diags *diag.List) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
+		v := st.With[k]
 		if !slices.Contains(allowed, k) {
-			diags.Add(codes.New("PF306", st.With[k].Span, fmt.Sprintf("input %q isn't supported for %s, which Pinfold runs as a digest-pinned container", k, st.Uses), fmt.Sprintf("supported inputs: %v", allowed)))
+			diags.Add(codes.New("PF306", v.Span, fmt.Sprintf("input %q isn't supported for %s, which Pinfold runs as a digest-pinned container", k, st.Uses), fmt.Sprintf("supported inputs: %v", allowed)))
+			continue
+		}
+		// The image runs with the job's credentials (OIDC for PyPI). Event data
+		// must not steer it, e.g. a repository-url taken from an issue title.
+		if v.Kind != spec.Literal && v.Kind != spec.Secret {
+			diags.Add(codes.New("PF306", v.Span, fmt.Sprintf("input %q of %s must be a literal or a secret, not a %s", k, st.Uses, v.Kind), "write the value out, or use { secret: NAME }"))
 		}
 	}
 }
