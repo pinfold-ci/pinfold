@@ -1,0 +1,112 @@
+# Pinfold action registry (design §6). Advisory: it can cause errors, never grant anything.
+#
+# privileged_ok means: the action runs no repository-controlled code AND has no
+# unpinned nested references (actions, container base images, runtime downloads).
+# Only privileged_ok actions may run in a job that holds secrets, OIDC or write
+# permissions. Review is per major version: an unreviewed major is not privileged_ok.
+#
+# restores_cache: "never", "always", or the name of the input that turns caching on.
+# requires: capabilities the action needs (resource:access, see internal/ir).
+version: 1
+actions:
+  actions/checkout:
+    majors: [v7]
+    privileged_ok: true
+    fetches_refs: true
+    restores_cache: never
+    secret_inputs: [token, ssh-key]
+    forbidden_in_privileged: [repository, ref, allow-unsafe-pr-checkout, persist-credentials]
+    requires: ["repo.contents:read"]
+    reviewed:
+      source: https://github.com/actions/checkout/blob/v7.0.1/action.yml
+      commit: 3d3c42e5aac5ba805825da76410c181273ba90b1
+      date: 2026-10-31
+      notes: Node action with a committed dist bundle; no nested uses. Overriding repository/ref, or allow-unsafe-pr-checkout, fetches code Pinfold doesn't vouch for.
+  actions/github-script:
+    majors: [v9]
+    privileged_ok: false
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: [github-token]
+    requires: []
+    reviewed:
+      source: https://github.com/actions/github-script/blob/v9.0.0/action.yml
+      commit: 3a2844b7e9c422d3c10d287c895573f7108da1b3
+      date: 2026-10-31
+      notes: Runs whatever JavaScript the script input contains, so user steps can't use it in privileged jobs. Pinfold's own effect steps use it with compiler-generated scripts.
+  actions/upload-artifact:
+    majors: [v7]
+    privileged_ok: true
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: []
+    requires: []
+    reviewed:
+      source: https://github.com/actions/upload-artifact/blob/v7.0.2/action.yml
+      commit: cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      date: 2026-10-31
+      notes: Node action with a committed dist bundle; outputs artifact-id and artifact-digest.
+  actions/download-artifact:
+    majors: [v8]
+    privileged_ok: true
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: [github-token]
+    requires: []
+    reviewed:
+      source: https://github.com/actions/download-artifact/blob/v8.0.2/action.yml
+      commit: 9000827ccba6bdab643e8b6fd33ac0654aef8333
+      date: 2026-10-31
+      notes: Node action; digest-mismatch defaults to error. Same-run downloads need no extra permission.
+  actions/setup-python:
+    majors: [v7]
+    privileged_ok: false
+    fetches_refs: false
+    restores_cache: cache
+    secret_inputs: [token, mirror-token]
+    requires: []
+    reviewed:
+      source: https://github.com/actions/setup-python/blob/v7.1.0/action.yml
+      commit: 6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+      date: 2026-10-31
+      notes: Downloads Python builds at runtime by version range (an unpinned nested reference), and restores a cache when the cache input is set. Fine in unprivileged and feeder jobs (without cache in feeders).
+  pypa/gh-action-pypi-publish:
+    majors: [v1]
+    privileged_ok: false
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: [password]
+    requires: ["oidc:write"]
+    container:
+      image: ghcr.io/pypa/gh-action-pypi-publish
+      tag: v1.14.3
+      digest: sha256:a20ee5e9a490ada64fce0c9176418a4fd5afad3b80e70fb4745803c1309dcdfc
+    reviewed:
+      source: https://github.com/pypa/gh-action-pypi-publish/blob/v1.14.3/Dockerfile
+      commit: 7245906fb61fa33a13554f9d5fb856fe61758086
+      date: 2026-10-31
+      notes: The action builds its image FROM python:3.13-slim, a floating tag, so the action itself isn't privileged_ok. Pinfold lowers it to the published image pinned by digest instead (D-035); Python dependencies inside are hash-pinned.
+  actions/attest:
+    majors: [v4]
+    privileged_ok: true
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: [github-token]
+    requires: ["oidc:write", "attestations:write"]
+    reviewed:
+      source: https://github.com/actions/attest/blob/v4.2.2/action.yml
+      commit: 1e69f48acb82d1966a394da916b4c1698aa569d6
+      date: 2026-10-31
+      notes: Node action with a committed dist bundle.
+  actions/deploy-pages:
+    majors: [v5]
+    privileged_ok: true
+    fetches_refs: false
+    restores_cache: never
+    secret_inputs: [token]
+    requires: ["pages:write", "oidc:write"]
+    reviewed:
+      source: https://github.com/actions/deploy-pages/blob/v5.0.1/action.yml
+      commit: 368f82528645a54fb793d4d04e342629a3f51346
+      date: 2026-10-31
+      notes: Node action with a committed dist bundle.
