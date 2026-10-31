@@ -113,6 +113,14 @@ func (c *checker) step(w *spec.Workflow, iw *ir.Workflow, j *spec.Job, zone ir.Z
 }
 
 func (c *checker) uses(w *spec.Workflow, iw *ir.Workflow, j *spec.Job, zone ir.Zone, guarded bool, st *spec.Step) {
+	// A hand-written download is invisible to the feeder analysis, so whatever
+	// produced the artifact (a cache-restoring job, say) would reach the
+	// privileged job unchecked (security audit F1). consumes: makes the
+	// producer a feeder and binds the artifact by id and digest.
+	if (zone == ir.ZoneFeeder || zone == ir.ZonePrivileged) && isDownloadArtifact(st.Uses) {
+		c.add("PF307", st.Span, "declare it with consumes: { <name>: { from: <job>, to: <path> } } so Pinfold can check the producing job and the artifact",
+			"job %q feeds or is a privileged job, so it can only download artifacts with consumes:", j.Name)
+	}
 	e, reviewed, err := registry.Lookup(st.Uses)
 	if err != nil {
 		c.add("PF304", st.Span, "", "can't check %s: %v", st.Uses, err)
@@ -252,4 +260,13 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+// isDownloadArtifact reports actions/download-artifact in any case, version or
+// sub-path (owner and repository names are case-insensitive on GitHub).
+func isDownloadArtifact(uses string) bool {
+	path, _, _ := strings.Cut(uses, "@")
+	owner, rest, _ := strings.Cut(path, "/")
+	repo, _, _ := strings.Cut(rest, "/")
+	return strings.EqualFold(owner, "actions") && strings.EqualFold(repo, "download-artifact")
 }

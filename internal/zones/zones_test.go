@@ -2,6 +2,7 @@ package zones
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -227,5 +228,78 @@ workflows:
 	}
 	if got := strings.Join(check(t, fmt.Sprintf(src, "if: { all: [ { maintainer: true } ] }")), " "); got != "" {
 		t.Errorf("gated dependant: codes = %q, want none", got)
+	}
+}
+
+// TestArtifactDownloadsOnlyViaConsumes holds security audit finding F1: a
+// cache-restoring job could feed the release through a hand-written
+// download-artifact step in a feeder, which the feeder analysis doesn't see.
+// Feeder and privileged jobs must download artifacts with consumes: (PF307).
+func TestArtifactDownloadsOnlyViaConsumes(t *testing.T) {
+	audit := `version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      deps:
+        runner: x
+        steps:
+          - uses: actions/setup-python@v7
+            with: { cache: pip }
+          - run: pip download -d wheels -r requirements.txt
+          - uses: actions/upload-artifact@v7
+            with: { name: wheels, path: wheels/ }
+      build:
+        needs: [deps]
+        runner: x
+        steps:
+          - uses: actions/download-artifact@v8
+            with: { name: wheels, path: wheels/ }
+          - run: python -m build
+        produces: { dist: dist/ }
+      publish:
+        needs: [build]
+        runner: x
+        permissions: { id-token: write }
+        consumes: { dist: { from: build, to: dist/ } }
+        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
+`
+	if got := strings.Join(check(t, audit), " "); got != "PF307" {
+		t.Errorf("audit F1 spec: codes = %q, want PF307", got)
+	}
+	// Other spellings of the same action.
+	for _, uses := range []string{"Actions/Download-Artifact@v8", "actions/download-artifact@v4"} {
+		src := strings.Replace(audit, "actions/download-artifact@v8", uses, 1)
+		if got := check(t, src); !slices.Contains(got, "PF307") {
+			t.Errorf("%s: codes = %v, want PF307 among them", uses, got)
+		}
+	}
+	// A privileged job downloading by hand.
+	priv := strings.Replace(audit, "        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]\n",
+		"        steps:\n          - uses: actions/download-artifact@v8\n            with: { name: wheels, path: wheels/ }\n          - uses: pypa/gh-action-pypi-publish@v1.14.3\n", 1)
+	if got := check(t, priv); !slices.Contains(got, "PF307") {
+		t.Errorf("privileged job: codes = %v, want PF307 among them", got)
+	}
+	// An unprivileged job that feeds nothing may download by hand.
+	plain := `version: 0
+workflows:
+  ci:
+    on: { push: { branches: [main] } }
+    jobs:
+      a:
+        runner: x
+        steps:
+          - run: make
+          - uses: actions/upload-artifact@v7
+            with: { name: out, path: out/ }
+      b:
+        needs: [a]
+        runner: x
+        steps:
+          - uses: actions/download-artifact@v8
+            with: { name: out, path: out/ }
+`
+	if got := check(t, plain); len(got) != 0 {
+		t.Errorf("unprivileged download: codes = %v, want none", got)
 	}
 }
