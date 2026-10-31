@@ -1,0 +1,12 @@
+version: 0
+workflows:
+  triage:
+    on: { issues: { types: [opened] } }
+    jobs:
+      greet:
+        runner: ubuntu-24.04
+        permissions: { issues: write }
+        steps:
+          - effect: comment
+            target: { context: issue.number }
+            body: "Thanks, {{ github.token }}!"

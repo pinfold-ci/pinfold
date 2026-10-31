@@ -13,6 +13,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/codes"
 	"github.com/pinfold-ci/pinfold/internal/diag"
+	"github.com/pinfold-ci/pinfold/internal/effects"
 	"github.com/pinfold-ci/pinfold/internal/ir"
 	"github.com/pinfold-ci/pinfold/internal/registry"
 )
@@ -59,6 +60,9 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		v.permissions(job, j)
 		v.checkouts(job)
 		v.containers(job)
+		if j.Zone == ir.ZonePrivileged {
+			v.scripts(job)
+		}
 	}
 	for name := range want {
 		if !seen[name] {
@@ -171,6 +175,43 @@ func (v *verifier) checkouts(job *yaml.Node) {
 			if n := get(with, k); n != nil {
 				v.report("PF903", n, "checkout overrides %s", k)
 			}
+		}
+	}
+}
+
+// scripts checks that, in a privileged job, every actions/github-script step is
+// a compiler-generated effect: marked as generated and running exactly one of
+// the generated scripts.
+func (v *verifier) scripts(job *yaml.Node) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	known := effects.Scripts()
+	for _, s := range steps.Content {
+		uses := get(s, "uses")
+		if uses == nil || !strings.HasPrefix(uses.Value, "actions/github-script@") {
+			continue
+		}
+		marked := false
+		for i := 0; i+1 < len(s.Content); i += 2 {
+			if s.Content[i].Value == "name" && strings.Contains(s.Content[i].LineComment+s.Content[i+1].LineComment, "pinfold:generated ") {
+				marked = true
+			}
+		}
+		if !marked {
+			v.report("PF906", uses, "github-script step in a privileged job isn't marked as generated")
+			continue
+		}
+		script := get(get(s, "with"), "script")
+		ok := false
+		for _, k := range known {
+			if script != nil && script.Value == k {
+				ok = true
+			}
+		}
+		if !ok {
+			v.report("PF906", uses, "github-script step in a privileged job doesn't run a generated effect script")
 		}
 	}
 }

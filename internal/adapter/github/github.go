@@ -23,6 +23,7 @@ var generatedActions = map[string]struct{ ref, tag string }{
 	"checkout": {"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"},
 	"upload":   {"actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9", "v7.0.2"},
 	"download": {"actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333", "v8.0.2"},
+	"script":   {"actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3", "v9.0.0"},
 }
 
 // File is one generated workflow.
@@ -119,7 +120,7 @@ func job(w *ir.Workflow, j *ir.Job) emit.Map {
 			{Key: "cancel-in-progress", Value: emit.Bool(j.Concurrency.CancelInProgress)},
 		}})
 	}
-	m = append(m, emit.Pair{Key: "steps", Value: steps(j)})
+	m = append(m, emit.Pair{Key: "steps", Value: steps(w, j)})
 	return m
 }
 
@@ -173,7 +174,7 @@ func permissions(caps []ir.Capability) emit.Node {
 	return m
 }
 
-func steps(j *ir.Job) emit.Seq {
+func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 	var out emit.Seq
 	if hasMaintainer(j.If) {
 		out = append(out, notYet(j.ID+"/maintainer-gate", "the maintainer gate arrives in milestone M3"))
@@ -191,7 +192,7 @@ func steps(j *ir.Job) emit.Seq {
 		})
 	}
 	for _, s := range j.Steps {
-		out = append(out, step(s))
+		out = append(out, step(w, j, s))
 	}
 	for _, a := range j.Produces {
 		up := generatedActions["upload"]
@@ -208,7 +209,7 @@ func steps(j *ir.Job) emit.Seq {
 	return out
 }
 
-func step(s *ir.Step) emit.Map {
+func step(w *ir.Workflow, j *ir.Job, s *ir.Step) emit.Map {
 	var m emit.Map
 	if s.Name != "" {
 		m = append(m, emit.Pair{Key: "name", Value: emit.Str(s.Name)})
@@ -238,7 +239,7 @@ func step(s *ir.Step) emit.Map {
 			m = append(m, emit.Pair{Key: "with", Value: values(s.With)})
 		}
 	case ir.DoEffect:
-		return notYet(s.ID, fmt.Sprintf("the %q effect arrives in milestone M3", s.Effect.Name))
+		return effectStep(w, j, s)
 	}
 	return m
 }
