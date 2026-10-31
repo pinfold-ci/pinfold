@@ -4,7 +4,10 @@
 package verify
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"slices"
 	"strings"
@@ -24,20 +27,53 @@ var allowedInWith = regexp.MustCompile(`^(github\.event\.pull_request\.number|gi
 
 var exprRE = regexp.MustCompile(`\$\{\{(.*?)\}\}`)
 
+// Keys the adapter writes at each level. Anything else (job container: or
+// services:, a reusable-workflow uses:, workflow env: or defaults:, a step's
+// continue-on-error:, ...) could change what runs, so it is a bug (PF904).
+var (
+	workflowKeys = []string{"name", "on", "permissions", "concurrency", "jobs"}
+	jobKeys      = []string{"name", "needs", "if", "runs-on", "environment", "permissions", "timeout-minutes", "concurrency", "outputs", "steps"}
+	stepKeys     = []string{"name", "id", "if", "uses", "run", "with", "env"}
+)
+
+// Env names a generated github-script step may receive (design §5), and the
+// names a registry container step reads its inputs from (D-035).
+var (
+	scriptEnvRE    = regexp.MustCompile(`^(T|PINFOLD)_[A-Z0-9_]+$`)
+	containerEnvRE = regexp.MustCompile(`^INPUT_[A-Z0-9_]+$`)
+	credentialRE   = regexp.MustCompile(`\bsecrets\.|\bgithub\.token\b`)
+)
+
+// gateEnv is the exact env of the generated maintainer gate step.
+var gateEnv = map[string]string{
+	"T_ACTOR":            "${{ github.actor }}",
+	"T_TRIGGERING_ACTOR": "${{ github.triggering_actor }}",
+}
+
 var artifactOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_upload_[a-z][a-z0-9-]{0,62}\.outputs\.artifact-(id|digest) \}\}$`)
 
 // Workflow checks one generated file against the IR workflow it came from.
 func Workflow(file, content string, w *ir.Workflow) diag.List {
-	v := &verifier{file: file}
+	v := &verifier{file: file, zones: map[string]ir.Zone{}}
+	for _, j := range w.Jobs {
+		v.zones[j.Name] = j.Zone
+	}
 	var doc yaml.Node
-	if err := yaml.Unmarshal([]byte(content), &doc); err != nil || len(doc.Content) != 1 || doc.Content[0].Kind != yaml.MappingNode {
+	dec := yaml.NewDecoder(bytes.NewReader([]byte(content)))
+	if err := dec.Decode(&doc); err != nil || len(doc.Content) != 1 || doc.Content[0].Kind != yaml.MappingNode {
 		v.report("PF904", &doc, "generated workflow isn't a YAML mapping: %v", err)
 		return v.diags
 	}
+	var extra yaml.Node
+	if err := dec.Decode(&extra); !errors.Is(err, io.EOF) {
+		v.report("PF904", &doc, "generated workflow has more than one YAML document")
+		return v.diags
+	}
 	root := doc.Content[0]
+	v.keys(root, workflowKeys, "the workflow")
 	v.expressions(root, nil)
 
-	if w.UnsafeRun && !strings.Contains(content, "pinfold:unsafe_run") {
+	if w.UnsafeRun && !stamped(content) {
 		v.report("PF909", root, "workflow sets unsafe_run but the generated file doesn't say so")
 	}
 	perms := get(root, "permissions")
@@ -62,6 +98,8 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 			v.report("PF902", jobs.Content[i], "generated job %q isn't in the IR", name)
 			continue
 		}
+		v.keys(job, jobKeys, fmt.Sprintf("job %q", name))
+		v.steps(job, name)
 		v.permissions(job, j)
 		v.checkouts(job)
 		v.containers(job)
@@ -90,7 +128,92 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 
 type verifier struct {
 	file  string
+	zones map[string]ir.Zone // job name -> zone, from the IR
 	diags diag.List
+}
+
+// stamped reports whether the file's leading comment block carries the
+// unsafe_run stamp the adapter writes (not merely the text somewhere).
+func stamped(content string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.HasPrefix(line, "#") {
+			return false
+		}
+		if strings.HasPrefix(line, "# pinfold:unsafe_run:") {
+			return true
+		}
+	}
+	return false
+}
+
+// keys reports any key of mapping m that isn't in allowed.
+func (v *verifier) keys(m *yaml.Node, allowed []string, where string) {
+	if m == nil || m.Kind != yaml.MappingNode {
+		return
+	}
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		if k := m.Content[i]; !slices.Contains(allowed, k.Value) {
+			v.report("PF904", k, "unexpected key %q in %s", k.Value, where)
+		}
+	}
+}
+
+// steps checks each step's keys and the shape of its env: a mapping, with
+// only T_*/PINFOLD_* names for generated scripts and INPUT_* names for
+// registry containers.
+func (v *verifier) steps(job *yaml.Node, name string) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	if steps.Kind != yaml.SequenceNode {
+		v.report("PF904", steps, "job %q steps isn't a list", name)
+		return
+	}
+	for _, s := range steps.Content {
+		if s.Kind != yaml.MappingNode {
+			v.report("PF904", s, "a step in job %q isn't a mapping", name)
+			continue
+		}
+		v.keys(s, stepKeys, fmt.Sprintf("a step of job %q", name))
+		if w := get(s, "with"); w != nil && w.Kind != yaml.MappingNode {
+			v.report("PF904", w, "a step's with: in job %q isn't a mapping", name)
+		}
+		env := get(s, "env")
+		if env == nil {
+			continue
+		}
+		if env.Kind != yaml.MappingNode {
+			v.report("PF904", env, "a step's env: in job %q isn't a mapping", name)
+			continue
+		}
+		uses := ""
+		if u := get(s, "uses"); u != nil {
+			uses = u.Value
+		}
+		var re *regexp.Regexp
+		switch {
+		case strings.HasPrefix(uses, "actions/github-script@"):
+			re = scriptEnvRE
+		case strings.HasPrefix(uses, "docker://"):
+			re = containerEnvRE
+		}
+		for i := 0; i+1 < len(env.Content); i += 2 {
+			k, val := env.Content[i], env.Content[i+1]
+			if re != nil && !re.MatchString(k.Value) {
+				v.report("PF904", k, "env name %q isn't allowed on %s in job %q", k.Value, uses, name)
+			}
+			if strings.HasPrefix(uses, "docker://") && strings.Contains(val.Value, "${{") && !secretOnly(val.Value) {
+				v.report("PF905", val, "container input %s in job %q may only be a literal or a secret", k.Value, name)
+			}
+		}
+	}
+}
+
+// secretOnly reports a value that is exactly one secrets.* expression.
+func secretOnly(s string) bool {
+	m := exprRE.FindAllStringSubmatch(s, -1)
+	return len(m) == 1 && m[0][0] == s && regexp.MustCompile(`^secrets\.[A-Za-z_][A-Za-z0-9_]*$`).MatchString(strings.TrimSpace(m[0][1]))
 }
 
 func (v *verifier) report(code string, n *yaml.Node, format string, args ...any) {
@@ -123,29 +246,41 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 			return
 		}
 		where := strings.Join(path, ".")
+		if len(path) >= 2 && path[0] == "jobs" && v.zones[path[1]] != ir.ZonePrivileged && credentialRE.MatchString(n.Value) {
+			// A job that the IR doesn't treat as privileged must not receive credentials.
+			v.report("PF904", n, "credential in %s, but job %q isn't privileged", where, path[1])
+			return
+		}
 		switch {
-		case inStep(path, "env"):
+		case inStep(path, "env") && len(path) == 6 && strings.HasPrefix(path[5], "T_"):
 			return // the only place tainted values may appear (design §4)
+		case inStep(path, "env") && len(path) == 6:
+			v.withRule(n, where) // any other env name gets the with: rule
 		case len(path) == 4 && path[0] == "jobs" && path[2] == "outputs":
 			// Only the artifact id and digest a generated upload step reports.
 			if !artifactOutputRE.MatchString(n.Value) {
 				v.report("PF904", n, "job output %s may only report a generated upload step's artifact id or digest", where)
 			}
 		case inStep(path, "with"):
-			rest := n.Value
-			for _, m := range exprRE.FindAllStringSubmatch(n.Value, -1) {
-				if !allowedInWith.MatchString(strings.TrimSpace(m[1])) {
-					v.report("PF904", n, "expression ${{%s}} is not allowed in %s", m[1], where)
-					return
-				}
-				rest = strings.Replace(rest, m[0], "", 1)
-			}
-			if strings.Contains(rest, "${{") {
-				v.report("PF904", n, "unterminated expression in %s", where)
-			}
+			v.withRule(n, where)
 		default:
 			v.report("PF904", n, "expression in %s", where)
 		}
+	}
+}
+
+// withRule allows only allowlisted expressions in n.
+func (v *verifier) withRule(n *yaml.Node, where string) {
+	rest := n.Value
+	for _, m := range exprRE.FindAllStringSubmatch(n.Value, -1) {
+		if !allowedInWith.MatchString(strings.TrimSpace(m[1])) {
+			v.report("PF904", n, "expression ${{%s}} is not allowed in %s", m[1], where)
+			return
+		}
+		rest = strings.Replace(rest, m[0], "", 1)
+	}
+	if strings.Contains(rest, "${{") {
+		v.report("PF904", n, "unterminated expression in %s", where)
 	}
 }
 
@@ -259,6 +394,24 @@ func (v *verifier) bindings(job *yaml.Node, name string) {
 		}
 		if !ok {
 			v.report("PF908", uses, "job %q downloads an artifact without first checking it is the one its producer uploaded", name)
+			continue
+		}
+		// The download must fetch exactly what the bind step checked: by name,
+		// from this run, failing on a digest mismatch.
+		with := get(s, "with")
+		for i := 0; i+1 < len(with.Content); i += 2 {
+			if k := with.Content[i]; !slices.Contains([]string{"name", "path", "digest-mismatch"}, k.Value) {
+				v.report("PF908", k, "artifact download in job %q sets %q", name, k.Value)
+			}
+		}
+		if dm := get(with, "digest-mismatch"); dm == nil || dm.Value != "error" {
+			v.report("PF908", uses, "artifact download in job %q must set digest-mismatch: error", name)
+		}
+		prevEnv := get(steps.Content[i-1], "env")
+		for j := 0; j+1 < len(prevEnv.Content); j += 2 {
+			if k := prevEnv.Content[j].Value; !slices.Contains([]string{"PINFOLD_NAME", "T_EXPECTED_ID", "T_EXPECTED_DIGEST"}, k) {
+				v.report("PF908", prevEnv.Content[j], "bind step in job %q sets unexpected env %q", name, k)
+			}
 		}
 	}
 }
@@ -349,6 +502,17 @@ func (v *verifier) gate(job *yaml.Node, name string) {
 	}
 	if script := get(get(first, "with"), "script"); script == nil || script.Value != effects.Scripts()[effects.Gate] {
 		v.report("PF907", first, "job %q's maintainer gate doesn't run the generated gate script", name)
+	}
+	// Exactly the generated env: PINFOLD_ROLES or similar could widen who passes.
+	env := get(first, "env")
+	got := map[string]string{}
+	if env != nil && env.Kind == yaml.MappingNode {
+		for i := 0; i+1 < len(env.Content); i += 2 {
+			got[env.Content[i].Value] = env.Content[i+1].Value
+		}
+	}
+	if fmt.Sprint(got) != fmt.Sprint(gateEnv) {
+		v.report("PF907", first, "job %q's maintainer gate env is %v, want exactly %v", name, got, gateEnv)
 	}
 	for _, s := range steps.Content[1:] {
 		if cond := get(s, "if"); cond == nil || cond.Value != gateCondition {

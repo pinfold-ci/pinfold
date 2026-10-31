@@ -81,7 +81,7 @@ func TestBrokenAdapterOutput(t *testing.T) {
 func TestAllowedExpressions(t *testing.T) {
 	p, files := example(t)
 	release, w := files[0].Content, p.Workflows[0]
-	for _, ok := range []string{"${{ secrets.PYPI_TOKEN }}", "${{ github.sha }}", "${{github.run_id}}"} {
+	for _, ok := range []string{"${{ github.sha }}", "${{github.run_id}}"} {
 		mutated := strings.Replace(release, "          path: dist/\n          if-no-files-found", "          path: "+ok+"\n          if-no-files-found", 1)
 		if d := Workflow("f", mutated, w); len(d) != 0 {
 			t.Errorf("%s in with: should be allowed, got %v", ok, d)
@@ -233,5 +233,69 @@ func TestEveryGuaranteedRowHasABreakingTest(t *testing.T) {
 	d := Workflow("t", release, &unsafe)
 	if len(d) == 0 || d[0].Code != "PF909" {
 		t.Errorf("unsafe_run without a stamp: got %v, want PF909", d)
+	}
+}
+
+// TestReviewRound1 holds the verifier bypasses found in the round-1
+// adversarial review (#32): each simulated adapter bug must be caught.
+func TestReviewRound1(t *testing.T) {
+	p, files := example(t)
+	run := "      - run: 'python -m pip install build && python -m build'\n"
+	tests := []struct {
+		name, file, old, new, want string
+	}{
+		{"workflow env", "release", "permissions: {}\njobs:", "permissions: {}\nenv:\n  NODE_OPTIONS: x\njobs:", "PF904"},
+		{"workflow defaults", "release", "permissions: {}\njobs:", "permissions: {}\ndefaults:\n  run:\n    shell: sh\njobs:", "PF904"},
+		{"job container", "release", "    environment: pypi\n", "    environment: pypi\n    container: node:latest\n", "PF904"},
+		{"job services", "release", "    environment: pypi\n", "    environment: pypi\n    services:\n      db:\n        image: postgres\n", "PF904"},
+		{"continue-on-error on the bind step", "release", "      - name: 'pinfold: check artifact dist' # pinfold:generated release/publish/bind-dist\n",
+			"      - name: 'pinfold: check artifact dist' # pinfold:generated release/publish/bind-dist\n        continue-on-error: true\n", "PF904"},
+		{"download from another run", "release", "          digest-mismatch: error\n", "          digest-mismatch: error\n          run-id: '1'\n", "PF908"},
+		{"download ignoring digests", "release", "          digest-mismatch: error\n", "          digest-mismatch: ignore\n", "PF908"},
+		{"extra env on the bind step", "release", "          PINFOLD_NAME: dist\n", "          PINFOLD_NAME: dist\n          PINFOLD_X: y\n", "PF908"},
+		{"NODE_OPTIONS on a script step", "release", "          PINFOLD_NAME: dist\n", "          PINFOLD_NAME: dist\n          NODE_OPTIONS: '--require=./x'\n", "PF904"},
+		{"tainted container input", "release", "          INPUT_REPOSITORY_URL: 'https://upload.pypi.org/legacy/'", "          INPUT_REPOSITORY_URL: '${{ github.event.head_commit.message }}'", "PF905"},
+		{"second YAML document", "release", "", "---\nx: 1\n", "PF904"},
+		{"secret in a feeder job", "release", run, "      - env:\n          T_TOKEN: ${{ secrets.X }}\n        run: make\n", "PF904"},
+		{"github.token in a feeder job", "release", run, "      - env:\n          T_TOKEN: ${{ github.token }}\n        run: make\n", "PF904"},
+		{"tainted value under a non-T_ env name", "release", run, "      - env:\n          NODE_OPTIONS: ${{ github.event.issue.title }}\n        run: make\n", "PF904"},
+		{"env as an expression", "release", run, "      - env: ${{ fromJSON(github.event.head_commit.message) }}\n        run: make\n", "PF904"},
+		{"gate roles widened", "triage", "          T_TRIGGERING_ACTOR: '${{ github.triggering_actor }}'\n",
+			"          T_TRIGGERING_ACTOR: '${{ github.triggering_actor }}'\n          PINFOLD_ROLES: '[\"read\"]'\n", "PF907"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			i := 0
+			if tt.file == "triage" {
+				i = 1
+			}
+			src := files[i].Content
+			var broken string
+			if tt.old == "" {
+				broken = src + tt.new
+			} else {
+				if !strings.Contains(src, tt.old) {
+					t.Fatalf("anchor %q not found", tt.old)
+				}
+				broken = strings.Replace(src, tt.old, tt.new, 1)
+			}
+			found := false
+			d := Workflow("f", broken, p.Workflows[i])
+			for _, x := range d {
+				found = found || x.Code == tt.want
+			}
+			if !found {
+				t.Errorf("want %s, got %v", tt.want, d)
+			}
+		})
+	}
+}
+
+func TestUnsafeRunStampMustBeInTheHeader(t *testing.T) {
+	if stamped("# a\nname: x # pinfold:unsafe_run: no\n") {
+		t.Error("stamp outside the header accepted")
+	}
+	if !stamped("# Generated\n# pinfold:unsafe_run: this workflow opted out\nname: x\n") {
+		t.Error("header stamp not found")
 	}
 }
