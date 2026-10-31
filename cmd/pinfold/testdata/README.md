@@ -32,3 +32,4 @@
 | 32 | PF127 | Artifact consumed without depending on its producer |
 | 33 | PF128 | Artifact the producer doesn't produce |
 | 34 | PF306 | Input a digest-pinned container lowering doesn't support (`entrypoint` override) |
+| 35 | PF306 | Container input taken from event data (`repository-url: { context: ref.name }`) |

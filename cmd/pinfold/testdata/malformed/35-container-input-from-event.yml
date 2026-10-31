@@ -1,0 +1,15 @@
+# A repository-url taken from event data would send the upload (and the
+# OIDC token exchange) to a host the attacker picks.
+version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      publish:
+        runner: ubuntu-24.04
+        environment: pypi
+        permissions: { id-token: write }
+        steps:
+          - uses: pypa/gh-action-pypi-publish@v1.14.3
+            with:
+              repository-url: { context: ref.name }

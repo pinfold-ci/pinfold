@@ -1,0 +1,2 @@
+testdata/malformed/35-container-input-from-event.yml:15:42: error PF306: input "repository-url" of pypa/gh-action-pypi-publish@v1.14.3 must be a literal or a secret, not a context
+    hint: write the value out, or use { secret: NAME }
