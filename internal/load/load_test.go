@@ -42,6 +42,13 @@ func TestRejected(t *testing.T) {
 		{"two documents", "a: 1\n---\nb: 2\n", "PF104@2:1"},
 		{"not utf-8", "a: \xff\n", "PF105"},
 		{"too large", "a: " + strings.Repeat("x", MaxSize) + "\n", "PF105"},
+		// YAML treats NEL, LS and PS as line breaks; editors and diffs often
+		// don't, so a key could hide on what looks like one line. CI fuzzing
+		// found an error reported on line 3 of a two-line file this way.
+		{"line separator", "version: 0\u2028workflows: 1\n", "PF105@1:11"},
+		{"paragraph separator", "a: 1\u2029\u2029x: [\n", "PF105@1:5"},
+		{"next line", "a: 1\u0085b: 2\n", "PF105@1:5"},
+		{"separator inside a quoted string", "a: \"x\u2028y\"\n", "PF105@1:6"},
 		{"top level is a list", "- a\n- b\n", "PF112@1:1"},
 		{"top level is a scalar", "hello\n", "PF112@1:1"},
 	}
