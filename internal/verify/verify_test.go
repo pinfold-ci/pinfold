@@ -44,9 +44,9 @@ func TestBrokenAdapterOutput(t *testing.T) {
 	}{
 		{"workflow write-all", "permissions: {}\njobs:", "permissions: write-all\njobs:", "PF901"},
 		{"workflow scope", "permissions: {}\njobs:", "permissions:\n  contents: read\njobs:", "PF901"},
-		{"job scope widened", "      contents: read\n", "      contents: write\n", "PF902"},
-		{"job scope added", "      id-token: write\n", "      id-token: write\n      contents: write\n", "PF902"},
-		{"job permissions dropped", "    permissions:\n      contents: read\n", "", "PF902"},
+		{"job scope widened", "      contents: read # declared in the spec\n", "      contents: write # declared in the spec\n", "PF902"},
+		{"job scope added", "      id-token: write # declared in the spec\n", "      id-token: write # declared in the spec\n      contents: write\n", "PF902"},
+		{"job permissions dropped", "    permissions:\n      contents: read # declared in the spec\n", "", "PF902"},
 		{"persist-credentials true", "persist-credentials: false", "persist-credentials: true", "PF903"},
 		{"persist-credentials as string", "persist-credentials: false", "persist-credentials: 'false'", "PF903"},
 		{"checkout ref override", "          persist-credentials: false\n", "          persist-credentials: false\n          ref: refs/pull/1/head\n", "PF903"},
