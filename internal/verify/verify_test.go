@@ -208,6 +208,10 @@ func TestEveryGuaranteedRowHasABreakingTest(t *testing.T) {
 		{"1", "unreviewed action in a privileged job", inject(publishSteps, "      - uses: evil/action@v1\n"), "PF909"},
 		{"1", "github-script by tag in a privileged job", inject(publishSteps, "      - uses: actions/github-script@v9\n        with:\n          script: 'console.log(1)'\n"), "PF909"},
 		{"5", "cache restore in a feeder job", inject(buildSteps, "      - uses: actions/setup-python@v7\n        with:\n          cache: pip\n"), "PF910"},
+		{"3", "checkout in another case without hardening", inject(buildSteps, "      - uses: Actions/Checkout@v7\n"), "PF903"},
+		{"5", "unknown action in a feeder job", inject(buildSteps, "      - uses: actions/setup-go@v5\n"), "PF910"},
+		{"5", "cache input in another case", inject(buildSteps, "      - uses: actions/setup-python@v7\n        with:\n          Cache: pip\n"), "PF910"},
+		{"5", "registry action in another case", inject(buildSteps, "      - uses: Actions/Setup-Python@v7\n"), "PF910"},
 		{"5", "actions/cache in a privileged job", inject(publishSteps, "      - uses: actions/cache@v4\n        with:\n          path: x\n          key: k\n"), "PF910"},
 	}
 	for _, tt := range tests {

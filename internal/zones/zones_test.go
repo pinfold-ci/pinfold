@@ -105,6 +105,46 @@ workflows:
 	}
 }
 
+// TestFeederCacheBypasses holds the round-1 review findings (#32): a feeder may
+// not run anything the registry can't show is cache-free.
+func TestFeederCacheBypasses(t *testing.T) {
+	feeder := func(step string) string {
+		return `version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      build:
+        runner: x
+        steps:
+          - ` + step + `
+          - run: python -m build
+        produces: { dist: dist/ }
+      publish:
+        runner: x
+        needs: [build]
+        permissions: { id-token: write }
+        consumes: { dist: { from: build, to: dist/ } }
+        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
+`
+	}
+	tests := []struct{ name, step, want string }{
+		{"action not in the registry", "uses: actions/setup-go@v5", "PF305"},
+		{"actions/cache in another case", "{ uses: Actions/Cache@v4, with: { path: x, key: k } }", "PF305"},
+		{"cache input in another case", "{ uses: actions/setup-python@v7, with: { Cache: pip } }", "PF305"},
+		{"unreviewed major with cache", "{ uses: actions/setup-python@v6, with: { cache: pip } }", "PF305"},
+		{"registry action in another case", "{ uses: Actions/Setup-Python@v7 }", "PF304"},
+		{"reviewed action without cache is fine", "{ uses: actions/setup-python@v7, with: { python-version: '3.13' } }", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := strings.Join(check(t, feeder(tt.step)), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestFeederViaOutput(t *testing.T) {
 	src := `version: 0
 workflows:
