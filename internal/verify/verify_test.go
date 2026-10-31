@@ -1,0 +1,96 @@
+package verify
+
+import (
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/pinfold-ci/pinfold/internal/adapter/github"
+	"github.com/pinfold-ci/pinfold/internal/ir"
+	"github.com/pinfold-ci/pinfold/internal/load"
+	"github.com/pinfold-ci/pinfold/internal/spec"
+)
+
+func example(t *testing.T) (*ir.Program, []github.File) {
+	t.Helper()
+	root, diags := load.ReadFile(filepath.Join("..", "spec", "testdata", "example.yml"))
+	if len(diags) != 0 {
+		t.Fatal(diags)
+	}
+	s, diags := spec.Decode("pinfold.yml", root)
+	if len(diags) != 0 {
+		t.Fatal(diags)
+	}
+	p := ir.Lower(s)
+	return p, github.Compile(p, "pinfold.yml", strings.Repeat("0", 64))
+}
+
+func TestGeneratedOutputPasses(t *testing.T) {
+	p, files := example(t)
+	for i, f := range files {
+		if d := Workflow(f.Path, f.Content, p.Workflows[i]); len(d) != 0 {
+			t.Errorf("%s: %v", f.Path, d)
+		}
+	}
+}
+
+// TestBrokenAdapterOutput simulates adapter bugs by editing real output; each
+// must be caught with the right code.
+func TestBrokenAdapterOutput(t *testing.T) {
+	p, files := example(t)
+	release, w := files[0].Content, p.Workflows[0]
+	tests := []struct {
+		name, old, new, want string
+	}{
+		{"workflow write-all", "permissions: {}\njobs:", "permissions: write-all\njobs:", "PF901"},
+		{"workflow scope", "permissions: {}\njobs:", "permissions:\n  contents: read\njobs:", "PF901"},
+		{"job scope widened", "      contents: read\n", "      contents: write\n", "PF902"},
+		{"job scope added", "      id-token: write\n", "      id-token: write\n      contents: write\n", "PF902"},
+		{"job permissions dropped", "    permissions:\n      contents: read\n", "", "PF902"},
+		{"persist-credentials true", "persist-credentials: false", "persist-credentials: true", "PF903"},
+		{"persist-credentials as string", "persist-credentials: false", "persist-credentials: 'false'", "PF903"},
+		{"checkout ref override", "          persist-credentials: false\n", "          persist-credentials: false\n          ref: refs/pull/1/head\n", "PF903"},
+		{"expression in run", "python -m build'", "python -m build ${{ github.event.head_commit.message }}'", "PF904"},
+		{"tainted expression in with", "          path: dist/\n          if-no-files-found", "          path: ${{ github.ref_name }}\n          if-no-files-found", "PF904"},
+		{"expression smuggled after an allowed one", "          path: dist/\n          if-no-files-found", "          path: ${{ github.sha }}${{ github.ref_name }}\n          if-no-files-found", "PF904"},
+		{"expression in job name", "    name: build\n", "    name: ${{ github.actor }}\n", "PF904"},
+		{"expression in if", "    needs:\n      - publish\n", "    needs:\n      - publish\n    if: ${{ github.event.issue.title }}\n", "PF904"},
+		{"alias hides an expression", "    name: build\n", "    name: &x build\n    environment: *x\n", "PF904"},
+		{"extra job", "jobs:\n", "jobs:\n  evil:\n    runs-on: x\n    permissions: {}\n    steps: []\n", "PF902"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !strings.Contains(release, tt.old) {
+				t.Fatalf("mutation anchor %q not found in output", tt.old)
+			}
+			broken := strings.Replace(release, tt.old, tt.new, 1)
+			d := Workflow("pinfold-release.yml", broken, w)
+			found := false
+			for _, x := range d {
+				found = found || x.Code == tt.want
+			}
+			if !found {
+				t.Errorf("want %s, got %v", tt.want, d)
+			}
+		})
+	}
+}
+
+func TestAllowedExpressions(t *testing.T) {
+	p, files := example(t)
+	release, w := files[0].Content, p.Workflows[0]
+	for _, ok := range []string{"${{ secrets.PYPI_TOKEN }}", "${{ github.sha }}", "${{github.run_id}}"} {
+		mutated := strings.Replace(release, "          path: dist/\n          if-no-files-found", "          path: "+ok+"\n          if-no-files-found", 1)
+		if d := Workflow("f", mutated, w); len(d) != 0 {
+			t.Errorf("%s in with: should be allowed, got %v", ok, d)
+		}
+	}
+	env := strings.Replace(release, "      - run: 'python -m pip install build && python -m build'\n",
+		"      - env:\n          T_TITLE: ${{ github.event.issue.title }}\n        run: 'python -m pip install build && python -m build'\n", 1)
+	if env == release {
+		t.Fatal("env mutation anchor not found")
+	}
+	if d := Workflow("f", env, w); len(d) != 0 {
+		t.Errorf("tainted value in env should be allowed, got %v", d)
+	}
+}

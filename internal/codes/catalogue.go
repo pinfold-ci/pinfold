@@ -27,4 +27,8 @@ var catalogue = map[string]Entry{
 	"PF128": {Severity: diag.Error, Title: "Artifact not produced by that job"},
 	"PF130": {Severity: diag.Error, Title: "Invalid permission"},
 	"PF201": {Severity: diag.Error, Title: "`${{` isn't allowed in the spec"},
+	"PF901": {Severity: diag.Error, Title: "Internal error: workflow permissions aren't empty"},
+	"PF902": {Severity: diag.Error, Title: "Internal error: job permissions don't match"},
+	"PF903": {Severity: diag.Error, Title: "Internal error: unsafe checkout in generated output"},
+	"PF904": {Severity: diag.Error, Title: "Internal error: expression in a forbidden place"},
 }
