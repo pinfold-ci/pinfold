@@ -32,7 +32,7 @@ func Check(s *spec.Spec) diag.List {
 						diags.Add(codes.New("PF122", e.Span, fmt.Sprintf("effect %s takes labels from the comment, but job %q has no comment.starts_with condition", e.Name, j.Name),
 							`add if: { all: [ { comment: { starts_with: "/label " } }, { maintainer: true } ] }`))
 					}
-					if !requiresMaintainer(j.If) {
+					if !RequiresMaintainer(j.If) {
 						diags.Add(codes.New("PF122", e.Span, fmt.Sprintf("effect %s takes labels from the comment, but job %q doesn't require a maintainer", e.Name, j.Name),
 							"add { maintainer: true } under the job's if: all:, so only people with write access choose labels"))
 					}
@@ -48,16 +48,16 @@ func Check(s *spec.Spec) diag.List {
 	return diags
 }
 
-// requiresMaintainer reports a condition that can only be true when the
+// RequiresMaintainer reports a condition that can only be true when the
 // maintainer gate passes: maintainer: true itself, or inside an all:.
-func requiresMaintainer(c *spec.Condition) bool {
+func RequiresMaintainer(c *spec.Condition) bool {
 	if c == nil {
 		return false
 	}
 	if c.Kind == "maintainer" && c.Flag {
 		return true
 	}
-	return slices.ContainsFunc(c.All, requiresMaintainer)
+	return slices.ContainsFunc(c.All, RequiresMaintainer)
 }
 
 func hasCommentPrefix(c *spec.Condition) bool {

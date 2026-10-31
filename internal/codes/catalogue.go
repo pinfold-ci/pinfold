@@ -46,6 +46,7 @@ var catalogue = map[string]Entry{
 	"PF202": {Severity: diag.Error, Title: "Untrusted value in an environment variable not named T_*"},
 	"PF203": {Severity: diag.Error, Title: "Untrusted value passed to an action input"},
 	"PF204": {Severity: diag.Error, Title: "Secret passed to an input that isn't a secret input"},
+	"PF205": {Severity: diag.Error, Title: "Event data chooses a release or status without the maintainer gate"},
 	"PF401": {Severity: diag.Error, Title: "Missing permission"},
 	"PF402": {Severity: diag.Warning, Title: "Write permission nothing uses"},
 	"PF403": {Severity: diag.Error, Title: "Read permission beyond contents in an unprivileged job"},
