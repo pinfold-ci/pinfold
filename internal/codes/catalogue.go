@@ -42,4 +42,7 @@ var catalogue = map[string]Entry{
 	"PF311": {Severity: diag.Warning, Title: "pull_request_target may be blocked"},
 	"PF312": {Severity: diag.Error, Title: "workflow_run workflows aren't supported"},
 	"PF313": {Severity: diag.Error, Title: "Step not allowed under pull_request_target"},
+	"PF202": {Severity: diag.Error, Title: "Untrusted value in an environment variable not named T_*"},
+	"PF203": {Severity: diag.Error, Title: "Untrusted value passed to an action input"},
+	"PF204": {Severity: diag.Error, Title: "Secret passed to an input that isn't a secret input"},
 }

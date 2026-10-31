@@ -1,0 +1,13 @@
+# Comment text in an environment variable is safe from YAML-level injection,
+# but must be named T_* so the script author treats it as untrusted.
+version: 0
+workflows:
+  notify:
+    on: { push: { branches: [main] } }
+    jobs:
+      echo:
+        runner: ubuntu-24.04
+        steps:
+          - run: ./notify.sh "$MESSAGE"
+            env:
+              MESSAGE: { context: comment.body }

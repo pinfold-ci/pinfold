@@ -1,2 +1,4 @@
+testdata/malformed/35-container-input-from-event.yml:15:42: error PF203: untrusted value context "ref.name" is passed to input "repository-url" of pypa/gh-action-pypi-publish@v1.14.3
+    hint: actions can evaluate inputs as code; pass untrusted data to a run: step through a T_* environment variable instead
 testdata/malformed/35-container-input-from-event.yml:15:42: error PF306: input "repository-url" of pypa/gh-action-pypi-publish@v1.14.3 must be a literal or a secret, not a context
     hint: write the value out, or use { secret: NAME }

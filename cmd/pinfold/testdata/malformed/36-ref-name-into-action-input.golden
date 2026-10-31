@@ -1,0 +1,2 @@
+testdata/malformed/36-ref-name-into-action-input.yml:13:34: error PF203: untrusted value context "ref.name" is passed to input "branch" of some/preview-action@v2
+    hint: actions can evaluate inputs as code; pass untrusted data to a run: step through a T_* environment variable instead
