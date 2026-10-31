@@ -274,7 +274,7 @@ actions:
 - `Workflows[]`; every node has a `Span` and `ID`. `Job.Zone` and `Job.Permissions` are owned by the core, serialised, and checked by the verifier.
 - **Abstract capabilities** in the IR (`repo.contents.read`, `pr.write`, `oidc`, …); the GitHub adapter maps them to scopes.
 - **Effects are IR nodes.** Each adapter lowers them to its platform's API: github-script on GitHub, and API calls on Forgejo and GitLab in v0.2.
-- **IR acceptance fixtures** for Forgejo, GitLab and Jenkins *fail* when a construct can't be mapped. Each fixture also records **which §2 guarantees weaken on that platform**; this becomes the per-platform guarantee table in the v0.2 design.
+- **IR acceptance fixtures** for Forgejo, GitLab and Jenkins *fail* when a construct can't be mapped. Each fixture also records **which §2 guarantees weaken on that platform**; this becomes the per-platform guarantee table in the v0.2 design. The fixtures live in [`testdata/ir-acceptance/`](../../testdata/ir-acceptance/).
 
 ---
 

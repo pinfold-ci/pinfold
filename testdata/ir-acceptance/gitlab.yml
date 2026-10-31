@@ -1,0 +1,115 @@
+# IR acceptance fixture: gitlab
+# Data only. Every entry is UNVERIFIED until the v0.2 design checks it against official docs.
+platform: gitlab
+status: unverified
+summary: "GitLab CI has a different model: pipelines and jobs, a job token with fixed abilities, and no Actions marketplace. Many constructs need a different lowering, not a translation."
+constructs:
+  trigger.push:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.schedule:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.manual:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  trigger.issue_comment:
+    maps: unverified
+    question: "Comment events reach CI only through webhooks or triggers; is there a safe built-in path?"
+  trigger.issues:
+    maps: unverified
+    question: "As above."
+  trigger.pull_request_target:
+    maps: unverified
+    question: "Merge request pipelines for forks run differently; map the trust semantics carefully."
+  trigger.pull_request_review:
+    maps: unverified
+    question: "No direct pipeline event known; confirm."
+  trigger.pull_request_review_comment:
+    maps: unverified
+    question: "As above."
+  trigger.discussion:
+    maps: unverified
+    question: "No equivalent feature."
+  trigger.discussion_comment:
+    maps: unverified
+    question: "No equivalent feature."
+  job.runner:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.needs:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.if:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.permissions:
+    maps: unverified
+    question: "The job token's abilities aren't declared per job the way GitHub scopes are; what can be narrowed, and where?"
+  job.environment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.timeout-minutes:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.concurrency:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  job.produces:
+    maps: unverified
+    question: "Artifacts exist; is there a digest the consumer can verify?"
+  job.consumes:
+    maps: unverified
+    question: "As above."
+  step.checkout:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  step.run:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  step.uses:
+    maps: unverified
+    question: "No direct equivalent of `uses:`; components or includes are the closest. Decide whether to support them or reject."
+  effect.comment:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.add_labels:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.remove_labels:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.commit_status:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  effect.release:
+    maps: unverified
+    question: "Assumed to map directly; confirm."
+  gate.maintainer:
+    maps: unverified
+    question: "Members API exposes access levels; confirm it's readable with the job token."
+guarantees:
+  G1-privileged-jobs-declarative:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G2-no-tainted-expressions:
+    holds: unverified
+    note: "Variable expansion rules differ; the taint lowering must be re-derived for GitLab's expansion."
+  G3-tainted-by-default:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G4-checkout-hardening:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G5-no-cache-with-credentials:
+    holds: unverified
+    note: "No known weakening; confirm."
+  G6-artifact-digest-binding:
+    holds: unverified
+    note: "Depends on whether a server-side artifact digest is available."
+  G7-exact-permissions:
+    holds: unverified
+    note: "Likely weakens: the job token isn't scoped per job like GitHub's."
+  G8-pinned-actions-match-lock:
+    holds: unverified
+    note: "Applies to included components/templates, if supported."
