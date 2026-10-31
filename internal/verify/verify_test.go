@@ -126,3 +126,31 @@ func TestEffectScriptsCantBeTampered(t *testing.T) {
 		})
 	}
 }
+
+// TestMaintainerGateCantBeBypassed edits the triage output, whose job requires a maintainer.
+func TestMaintainerGateCantBeBypassed(t *testing.T) {
+	p, files := example(t)
+	triage, w := files[1].Content, p.Workflows[1]
+	gateIf := "        if: 'steps.pinfold_gate.outputs.ok == ''true'''\n"
+	tests := []struct{ name, old, new string }{
+		{"condition dropped from a step", gateIf, ""},
+		{"condition weakened", gateIf, "        if: always()\n"},
+		{"gate id renamed", "        id: pinfold_gate\n", "        id: gate\n"},
+		{"gate script edited", "// Maintainer gate (design section 4).", "core.setOutput('ok', 'true'); return;\n            // Maintainer gate (design section 4)."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !strings.Contains(triage, tt.old) {
+				t.Fatalf("anchor not found")
+			}
+			d := Workflow("t", strings.Replace(triage, tt.old, tt.new, 1), w)
+			found := false
+			for _, x := range d {
+				found = found || x.Code == "PF907" || x.Code == "PF906"
+			}
+			if !found {
+				t.Errorf("want PF907/PF906, got %v", d)
+			}
+		})
+	}
+}

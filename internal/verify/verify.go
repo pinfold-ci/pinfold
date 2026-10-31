@@ -63,6 +63,9 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		if j.Zone == ir.ZonePrivileged {
 			v.scripts(job)
 		}
+		if hasMaintainer(j.If) {
+			v.gate(job, j.Name)
+		}
 	}
 	for name := range want {
 		if !seen[name] {
@@ -214,6 +217,46 @@ func (v *verifier) scripts(job *yaml.Node) {
 			v.report("PF906", uses, "github-script step in a privileged job doesn't run a generated effect script")
 		}
 	}
+}
+
+// gate checks that a job with a maintainer condition starts with the generated
+// gate step and that every later step only runs when the gate passed.
+func (v *verifier) gate(job *yaml.Node, name string) {
+	steps := get(job, "steps")
+	if steps == nil || len(steps.Content) == 0 {
+		v.report("PF907", job, "job %q needs a maintainer gate but has no steps", name)
+		return
+	}
+	first := steps.Content[0]
+	if id := get(first, "id"); id == nil || id.Value != "pinfold_gate" {
+		v.report("PF907", first, "job %q needs the maintainer gate as its first step", name)
+		return
+	}
+	if script := get(get(first, "with"), "script"); script == nil || script.Value != effects.Scripts()[effects.Gate] {
+		v.report("PF907", first, "job %q's maintainer gate doesn't run the generated gate script", name)
+	}
+	for _, s := range steps.Content[1:] {
+		if cond := get(s, "if"); cond == nil || cond.Value != gateCondition {
+			v.report("PF907", s, "a step in job %q runs without checking the maintainer gate", name)
+		}
+	}
+}
+
+const gateCondition = "steps.pinfold_gate.outputs.ok == 'true'"
+
+func hasMaintainer(c *ir.Condition) bool {
+	if c == nil {
+		return false
+	}
+	if c.Kind == "maintainer" {
+		return true
+	}
+	for _, sub := range append(append([]*ir.Condition{}, c.All...), c.Any...) {
+		if hasMaintainer(sub) {
+			return true
+		}
+	}
+	return false
 }
 
 // containers checks that every docker:// step is a registry-listed image pinned by digest.

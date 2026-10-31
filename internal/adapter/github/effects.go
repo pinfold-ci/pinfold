@@ -113,3 +113,42 @@ func commentPrefix(c *ir.Condition) string {
 	}
 	return ""
 }
+
+// gateCondition is the condition every step after the maintainer gate carries.
+const gateCondition = "steps.pinfold_gate.outputs.ok == 'true'"
+
+// gateStep is the generated first step of a job with `maintainer: true`
+// (design §4): it looks up the triggering user's role and sets ok.
+func gateStep(w *ir.Workflow, j *ir.Job) emit.Map {
+	script, err := effects.Script(effects.Gate)
+	if err != nil {
+		panic(err)
+	}
+	env := map[string]ir.Value{}
+	for k, ctx := range map[string]string{"ACTOR": "actor", "TRIGGERING_ACTOR": "triggering_actor"} {
+		v := ir.Value{Kind: spec.Context, Text: ctx}
+		name := "PINFOLD_" + k
+		if taint.Tainted(v, w.Class) {
+			name = "T_" + k
+		}
+		env[name] = v
+	}
+	gs := generatedActions["script"]
+	return emit.Map{
+		{Key: "name", Value: emit.Str("pinfold: maintainer gate"), Comment: generatedMarker + j.ID + "/maintainer-gate"},
+		{Key: "id", Value: emit.Str("pinfold_gate")},
+		{Key: "uses", Value: emit.Str(gs.ref), Comment: gs.tag},
+		{Key: "env", Value: values(env)},
+		{Key: "with", Value: emit.Map{{Key: "script", Value: emit.Str(script)}}},
+	}
+}
+
+// guard adds the gate condition to a step that follows a maintainer gate, so a
+// non-maintainer gets a neutral skip rather than a failure.
+func guard(gated bool, m emit.Map) emit.Map {
+	if !gated {
+		return m
+	}
+	out := emit.Map{m[0], {Key: "if", Value: emit.Str(gateCondition)}}
+	return append(out, m[1:]...)
+}

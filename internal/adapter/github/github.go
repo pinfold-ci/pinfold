@@ -176,12 +176,13 @@ func permissions(caps []ir.Capability) emit.Node {
 
 func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 	var out emit.Seq
-	if hasMaintainer(j.If) {
-		out = append(out, notYet(j.ID+"/maintainer-gate", "the maintainer gate arrives in milestone M3"))
+	gated := hasMaintainer(j.If)
+	if gated {
+		out = append(out, gateStep(w, j))
 	}
 	for _, c := range j.Consumes {
 		dl := generatedActions["download"]
-		out = append(out, emit.Map{
+		out = append(out, guard(gated, emit.Map{
 			{Key: "name", Value: emit.Str("pinfold: download " + c.Name), Comment: generatedMarker + j.ID + "/consume-" + c.Name},
 			{Key: "uses", Value: emit.Str(dl.ref), Comment: dl.tag},
 			{Key: "with", Value: emit.Map{
@@ -189,14 +190,14 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 				{Key: "path", Value: emit.Str(c.To)},
 				{Key: "digest-mismatch", Value: emit.Str("error")},
 			}},
-		})
+		}))
 	}
 	for _, s := range j.Steps {
-		out = append(out, step(w, j, s))
+		out = append(out, guard(gated, step(w, j, s)))
 	}
 	for _, a := range j.Produces {
 		up := generatedActions["upload"]
-		out = append(out, emit.Map{
+		out = append(out, guard(gated, emit.Map{
 			{Key: "name", Value: emit.Str("pinfold: upload " + a.Name), Comment: generatedMarker + j.ID + "/produce-" + a.Name},
 			{Key: "uses", Value: emit.Str(up.ref), Comment: up.tag},
 			{Key: "with", Value: emit.Map{
@@ -204,7 +205,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 				{Key: "path", Value: emit.Str(a.Path)},
 				{Key: "if-no-files-found", Value: emit.Str("error")},
 			}},
-		})
+		}))
 	}
 	return out
 }
@@ -267,15 +268,6 @@ func containerStep(s *ir.Step, e *registry.Entry) emit.Map {
 		{Key: "name", Value: emit.Str(name), Comment: generatedMarker + s.ID},
 		{Key: "uses", Value: emit.Str("docker://" + c.Ref()), Comment: s.Uses + " (" + c.Tag + ")"},
 		{Key: "env", Value: values(env)},
-	}
-}
-
-// notYet is a placeholder that fails the job: it fails closed rather than
-// skipping a security feature that isn't implemented yet.
-func notYet(id, why string) emit.Map {
-	return emit.Map{
-		{Key: "name", Value: emit.Str("pinfold: not implemented: " + why), Comment: generatedMarker + id},
-		{Key: "run", Value: emit.Str("echo 'pinfold: not implemented yet; failing closed.' >&2\nexit 1\n")},
 	}
 }
 

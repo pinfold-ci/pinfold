@@ -11,7 +11,7 @@ import (
 	"sort"
 )
 
-//go:embed js/sanitize.js js/common.js js/comment.js js/labels.js js/commit_status.js js/release.js
+//go:embed js/sanitize.js js/common.js js/comment.js js/labels.js js/commit_status.js js/release.js js/gate.js
 var files embed.FS
 
 // Sanitizer is the JavaScript sanitiser inlined into every effect script.
@@ -24,7 +24,11 @@ var bodies = map[string]string{
 	"remove_labels": "labels.js",
 	"commit_status": "commit_status.js",
 	"release":       "release.js",
+	Gate:            "gate.js",
 }
+
+// Gate is the pseudo-effect name of the maintainer gate step.
+const Gate = "maintainer_gate"
 
 func mustRead(name string) string {
 	b, err := files.ReadFile("js/" + name)
