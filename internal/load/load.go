@@ -25,6 +25,16 @@ const MaxSize = 1 << 20
 
 // ReadFile reads and loads the spec at path.
 func ReadFile(path string) (*yaml.Node, diag.List) {
+	src, diags := Read(path)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return Load(path, src)
+}
+
+// Read returns the raw bytes of the spec at path, reading at most MaxSize+1
+// bytes so an oversized file is rejected by Load without reading all of it.
+func Read(path string) ([]byte, diag.List) {
 	f, err := os.Open(path) // #nosec G304 -- the user names the spec file to read
 	if err != nil {
 		return nil, diag.List{codes.New("PF100", diag.Span{File: path}, fmt.Sprintf("can't read spec: %v", err), "check the path, or run \"pinfold init\" to create a spec")}
@@ -34,7 +44,7 @@ func ReadFile(path string) (*yaml.Node, diag.List) {
 	if err != nil {
 		return nil, diag.List{codes.New("PF100", diag.Span{File: path}, fmt.Sprintf("can't read spec: %v", err), "")}
 	}
-	return Load(path, src)
+	return src, nil
 }
 
 // Load parses src (named file in diagnostics). On success it returns the
@@ -47,9 +57,7 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 	if !utf8.Valid(src) {
 		return nil, diag.List{codes.New("PF105", at(0, 0), "spec is not valid UTF-8", "save the file as UTF-8")}
 	}
-	src = bytes.TrimPrefix(src, []byte("\ufeff"))
-	src = bytes.ReplaceAll(src, []byte("\r\n"), []byte("\n"))
-	src = bytes.ReplaceAll(src, []byte("\r"), []byte("\n")) // YAML treats a lone CR as a line break too
+	src = Normalize(src)
 
 	dec := yaml.NewDecoder(bytes.NewReader(src))
 	var docs []*yaml.Node
@@ -87,6 +95,14 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 // isEmptyNull reports an implicit null, such as the content of a bare "---".
 func isEmptyNull(n *yaml.Node) bool {
 	return n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == ""
+}
+
+// Normalize strips a leading BOM and turns CRLF and lone CR into LF, so the
+// same spec gives the same tree, positions and hash on every platform.
+func Normalize(src []byte) []byte {
+	src = bytes.TrimPrefix(src, []byte("\ufeff"))
+	src = bytes.ReplaceAll(src, []byte("\r\n"), []byte("\n"))
+	return bytes.ReplaceAll(src, []byte("\r"), []byte("\n")) // YAML treats a lone CR as a line break too
 }
 
 var lineRE = regexp.MustCompile(`^yaml: line (\d+): (.*)$`)
