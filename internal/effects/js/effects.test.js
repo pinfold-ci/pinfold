@@ -168,8 +168,11 @@ test('artifact binding: accepts exactly the reported artifact', async () => {
   const d = 'a'.repeat(64);
   const env = { PINFOLD_NAME: 'dist', T_EXPECTED_ID: '123', T_EXPECTED_DIGEST: d };
   let seen;
-  await run('artifact_bind', env, { listArtifacts: (args) => { seen = args; return [{ id: 123, name: 'dist', digest: 'sha256:' + d }]; } });
+  const { outputs } = await run('artifact_bind', env, { listArtifacts: (args) => { seen = args; return [{ id: 123, name: 'dist', digest: 'sha256:' + d }]; } });
   assert.deepStrictEqual(seen, { owner: 'o', repo: 'r', run_id: 99, name: 'dist', per_page: 100 });
+  // The download step fetches by this id (pinfold#63), so a same-name artifact
+  // uploaded after the check can't be what gets downloaded.
+  assert.deepStrictEqual(outputs, { id: '123' });
 });
 
 test('artifact binding: rejects anything else', async () => {

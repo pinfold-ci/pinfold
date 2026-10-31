@@ -153,8 +153,9 @@ func guard(gated bool, m emit.Map) emit.Map {
 	return append(out, m[1:]...)
 }
 
-// bindStep checks, before a download by name, that the run holds exactly the
-// artifact the producing job reported (id and digest), received through env.
+// bindStep checks, before the download, that the run holds exactly the
+// artifact the producing job reported (id and digest), received through env,
+// and outputs that id for the download step (pinfold#63).
 func bindStep(j *ir.Job, c spec.Consume) emit.Map {
 	script, err := effects.Script(effects.Bind)
 	if err != nil {
@@ -168,8 +169,13 @@ func bindStep(j *ir.Job, c spec.Consume) emit.Map {
 	gs := generatedActions["script"]
 	return emit.Map{
 		{Key: "name", Value: emit.Str("pinfold: check artifact " + c.Name), Comment: generatedMarker + j.ID + "/bind-" + c.Name},
+		{Key: "id", Value: emit.Str(bindID(c.Name))},
 		{Key: "uses", Value: emit.Str(gs.ref), Comment: gs.tag},
 		{Key: "env", Value: values(env)},
 		{Key: "with", Value: emit.Map{{Key: "script", Value: emit.Str(script)}}},
 	}
 }
+
+// bindID is the step id of the bind step for an artifact. The download step
+// fetches the artifact id this step checked (pinfold#63).
+func bindID(artifact string) string { return "pinfold_bind_" + artifact }

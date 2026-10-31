@@ -1,5 +1,5 @@
 // Artifact binding (design section 2): before a privileged job downloads an
-// artifact by name, check that this run holds exactly one artifact with that
+// artifact, check that this run holds exactly one artifact with that
 // name and that it is the one the producing job reported (id and digest).
 const name = cfg('NAME', '');
 const id = val('EXPECTED_ID');
@@ -13,3 +13,7 @@ if (same.length !== 1) throw new Error('pinfold: expected exactly one artifact n
 const a = same[0];
 const got = String(a.digest || '').toLowerCase().replace(/^sha256:/, '');
 if (String(a.id) !== id || got !== digest) throw new Error('pinfold: artifact ' + name + ' is not the one its producing job uploaded');
+// The download step fetches by this id, not by name (pinfold#63): another job
+// in the run could replace a same-name artifact after this check, but the
+// replacement gets a new id.
+core.setOutput('id', id);

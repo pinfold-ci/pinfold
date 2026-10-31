@@ -9,7 +9,7 @@ Design §2 lists what Pinfold **guarantees** for generated GitHub Actions workfl
 | 3 | Contexts are tainted by default | taint table (`internal/taint`) | PF904 allowlist | `TestTaintedTable` |
 | 4 | Checkouts never override `repository`/`ref` in privileged workflows; `persist-credentials: false` | PF303 | PF903 | `internal/zones`, `internal/verify` |
 | 5 | No cache restore in a job that holds credentials or feeds one | PF302, PF305 | PF910 | `internal/zones` (feeders via artifacts, outputs, transitive), `internal/verify` (row 5), Ultralytics fixture |
-| 6 | Artifacts consumed by a privileged job match the digest their producer recorded | generated bind step (D-036) | PF908 | bind behaviour tests, `TestArtifactBindingCantBeRemoved` |
+| 6 | Artifacts consumed by a privileged job match the digest their producer recorded | generated bind step (D-036); download by the checked artifact id (#63) | PF908 | bind behaviour tests, `TestArtifactBindingCantBeRemoved` |
 | 7 | Workflow `permissions: {}`; each job's permissions equal the declared plus generated set | PF401, PF402 | PF901, PF902 | `internal/permissions`, `internal/verify` |
 | 8 | Every `uses:` is a commit SHA matching `pinfold.lock` | lock (M4) | lock verifier (M4) | M4 |
 

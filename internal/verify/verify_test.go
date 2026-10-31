@@ -172,6 +172,13 @@ func TestArtifactBindingCantBeRemoved(t *testing.T) {
 		{"binding step removed", release[:start] + release[end:], "PF908"},
 		{"binding names another artifact", strings.Replace(release, "          PINFOLD_NAME: dist\n", "          PINFOLD_NAME: other\n", 1), "PF908"},
 		{"job output smuggles an expression", strings.Replace(release, "${{ steps.pinfold_upload_dist.outputs.artifact-id }}", "${{ github.event.head_commit.message }}", 1), "PF904"},
+		// pinfold#63: the download must fetch the id the bind step checked, not a name.
+		{"download by name", strings.Replace(release, "          artifact-ids: '${{ steps.pinfold_bind_dist.outputs.id }}'\n", "          name: dist\n", 1), "PF908"},
+		{"download by the producer's unchecked id", strings.Replace(release, "${{ steps.pinfold_bind_dist.outputs.id }}", "${{ needs.build.outputs.pinfold_dist_id }}", 1), "PF904"},
+		{"download by another bind step's id", strings.Replace(release, "${{ steps.pinfold_bind_dist.outputs.id }}", "${{ steps.pinfold_bind_other.outputs.id }}", 1), "PF908"},
+		{"bind step loses its id", strings.Replace(release, "        id: pinfold_bind_dist\n", "", 1), "PF908"},
+		{"download id plus a literal", strings.Replace(release, "'${{ steps.pinfold_bind_dist.outputs.id }}'", "'${{ steps.pinfold_bind_dist.outputs.id }},1'", 1), "PF908"},
+		{"bind output used elsewhere", strings.Replace(release, "          T_TAG: '${{ github.ref_name }}'\n", "          T_TAG: '${{ github.ref_name }}'\n          PINFOLD_X: '${{ steps.pinfold_bind_dist.outputs.id }}'\n", 1), "PF904"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
