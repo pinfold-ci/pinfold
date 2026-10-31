@@ -33,3 +33,6 @@
 | 33 | PF128 | Artifact the producer doesn't produce |
 | 34 | PF306 | Input a digest-pinned container lowering doesn't support (`entrypoint` override) |
 | 35 | PF306 | Container input taken from event data (`repository-url: { context: ref.name }`) |
+| 36 | PF203 | Branch name (`ref.name`) passed to an action input |
+| 37 | PF202 | Comment text in an environment variable not named `T_*` |
+| 38 | PF204 | Secret passed to an input that isn't a secret input |
