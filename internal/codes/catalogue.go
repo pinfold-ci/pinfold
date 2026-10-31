@@ -50,4 +50,6 @@ var catalogue = map[string]Entry{
 	"PF906": {Severity: diag.Error, Title: "Internal error: unrecognised script in a privileged job"},
 	"PF907": {Severity: diag.Error, Title: "Internal error: maintainer gate missing or bypassable"},
 	"PF908": {Severity: diag.Error, Title: "Internal error: artifact download without binding"},
+	"PF909": {Severity: diag.Error, Title: "Internal error: user code in a privileged job"},
+	"PF910": {Severity: diag.Error, Title: "Internal error: cache restore in a privileged or feeder job"},
 }
