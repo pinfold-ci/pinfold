@@ -15,11 +15,19 @@ const PINFOLD_SANITIZER = (() => {
 
   // Remove control and invisible formatting characters except tab and newline; normalise CR.
   function stripControl(s) {
-    return s.replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u200B-\u200F\u2028-\u202E\u2060-\u2069\uFEFF]/g, '');
+    return s.replace(/\r\n?/g, '\n')
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u034F\u061C\u115F\u1160\u17B4\u17B5\u180B-\u180F\u200B-\u200F\u2028-\u202E\u2060-\u206F\u3164\uFE00-\uFE0F\uFEFF\uFFA0\uFFF9-\uFFFB]/g, '')
+      // Tag characters (invisible "ASCII smuggling") and supplementary variation selectors.
+      .replace(/[\u{E0000}-\u{E007F}\u{E0100}-\u{E01EF}]/gu, '');
   }
 
-  // Wrap @mentions and #refs in backticks unless allowlisted, so they don't
-  // notify people or link issues. Allowlists hold names without the prefix.
+  // Escape & and < so untrusted text can't spell @ or # as an HTML entity
+  // (&#64;, &commat;, &num;) or carry raw HTML (links in href=, hidden
+  // elements). Markdown still renders; HTML in the text shows as text.
+  function escapeHtml(s) {
+    return s.replace(/&(?!amp;|lt;)/g, '&amp;').replace(/</g, '&lt;');
+  }
+
   // Insert a zero-width space after @ and # so mentions don't notify and refs
   // don't link, unless allowlisted. Input is stripped of zero-width characters
   // first (stripControl), so the only ones left are ours.
@@ -27,17 +35,21 @@ const PINFOLD_SANITIZER = (() => {
     const mentions = new Set((allowMentions || []).map((m) => String(m).toLowerCase()));
     const refs = new Set((allowRefs || []).map(String));
     // owner/repo#12 is a cross-repository reference, so refs are neutralised
-    // even after a word character; &#12; is an HTML entity, not a ref.
-    s = s.replace(/(?<!&)#(\d{1,10})(?!\d)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
+    // even after a word character. Entities are already escaped (escapeHtml).
+    s = s.replace(/#(\d+)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
+    s = s.replace(/\bGH-(\d+)/gi, (m, num) => (refs.has(num) ? m : m.slice(0, 3) + '\u200b' + num));
     s = s.replace(/(?<!\w)@([A-Za-z0-9](?:[A-Za-z0-9-]{0,38})(?:\/[A-Za-z0-9._-]+)?)/g, (m, name) =>
       mentions.has(name.toLowerCase()) ? m : '@\u200b' + name);
     return s;
   }
 
-  // Keep at most max links; later ones become plain text.
+  // Keep at most max links; later ones become plain text. Counts scheme
+  // links, www. autolinks and protocol-relative Markdown link targets.
+  const LINK_START = String.raw`(?:https?:\/\/|(?<![\w.\-])www\.|(?<=\]\()\/\/)`;
+  const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
   function capLinks(s, max) {
     let n = 0;
-    return s.replace(/https?:\/\/(?:(?!https?:\/\/)[^\s<>()\[\]`"'])*/gi, (url) => (++n <= max ? url : '[link removed]'));
+    return s.replace(LINK_RE, (url) => (++n <= max ? url : '[link removed]'));
   }
 
   // Truncate to max UTF-8 bytes without splitting a character.
@@ -56,6 +68,8 @@ const PINFOLD_SANITIZER = (() => {
     }
     // Don't end on a dangling neutralised @ or # (a cut right after it).
     out = out.replace(/[@#]\u200b?$/, '');
+    // Nor on part of an entity escapeHtml wrote (&amp; or &lt; cut short).
+    out = out.replace(/&(?:a|am|amp|l|lt)?$/, '');
     return out + marker;
   }
 
@@ -63,6 +77,7 @@ const PINFOLD_SANITIZER = (() => {
     let s = String(text ?? '');
     s = stripControl(s);
     s = stripHtmlComments(s);
+    s = escapeHtml(s);
     s = capLinks(s, opts.maxLinks ?? DEFAULT_MAX_LINKS);
     s = neutralise(s, opts.allowMentions, opts.allowRefs);
     s = capBytes(s, opts.maxBytes ?? DEFAULT_MAX_BYTES);
@@ -88,8 +103,10 @@ const PINFOLD_SANITIZER = (() => {
     return { labels: out.slice(0, max), rejected, dropped: out.slice(max) };
   }
 
+  // A tag name git itself accepts (git check-ref-format), within TAG_RE.
   function validTag(tag) {
-    return typeof tag === 'string' && TAG_RE.test(tag) && !tag.includes('..') && !tag.startsWith('/') && !tag.endsWith('/');
+    if (typeof tag !== 'string' || !TAG_RE.test(tag) || tag.includes('..') || tag.startsWith('-') || tag.endsWith('.')) return false;
+    return tag.split('/').every((c) => c !== '' && !c.startsWith('.') && !c.endsWith('.lock'));
   }
 
   // Render {{ name }} placeholders with control-stripped values; unknown names render empty.
@@ -97,6 +114,6 @@ const PINFOLD_SANITIZER = (() => {
     return String(tpl).replace(/\{\{\s*([a-z_.]+)\s*\}\}/g, (_, name) => stripControl(String(vars[name] ?? '')));
   }
 
-  return { sanitizeBody, labelsFromComment, filterLabels, validTag, renderTemplate, stripHtmlComments, stripControl, capBytes, capLinks, neutralise };
+  return { sanitizeBody, labelsFromComment, filterLabels, validTag, renderTemplate, stripHtmlComments, stripControl, escapeHtml, capBytes, capLinks, neutralise };
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = PINFOLD_SANITIZER;

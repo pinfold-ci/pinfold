@@ -31,7 +31,7 @@ async function run(effect, env, api = {}, globFiles = [], payload = { sender: { 
     },
   };
   const core = { warning: (m) => warnings.push(m), error: (m) => warnings.push(m), notice: (m) => warnings.push(m), setOutput: (k, v) => { outputs[k] = v; } };
-  const context = { repo: { owner: 'o', repo: 'r' }, payload, runId: 99 };
+  const context = { repo: { owner: 'o', repo: 'r' }, payload, runId: 99, sha: 'abc123' };
   const glob = { create: async () => ({ glob: async () => globFiles }) };
   const saved = { ...process.env };
   for (const k of Object.keys(process.env)) if (k.startsWith('T_') || k.startsWith('PINFOLD_')) delete process.env[k];
@@ -119,7 +119,20 @@ test('release: uploads workspace files and refuses ones outside it', async () =>
   const ok = await run('release', env, api, [path.join(ws, 'a.whl')]);
   assert.deepStrictEqual(ok.calls.map((c) => c[0]), ['createRelease', 'uploadReleaseAsset']);
   assert.strictEqual(ok.calls[1][1].name, 'a.whl');
-  await assert.rejects(run('release', env, api, [path.join(ws, 'link.whl')]), /outside the workspace/);
+  assert.strictEqual(ok.calls[0][1].target_commitish, 'abc123');
+  // A refused file stops the effect before any release exists.
+  let created = 0;
+  const counting = { createRelease: () => { created++; return { data: { id: 42 } }; } };
+  await assert.rejects(run('release', env, counting, [path.join(ws, 'a.whl'), path.join(ws, 'link.whl')]), /outside the workspace/);
+  assert.strictEqual(created, 0);
+});
+
+test('comment: an open code fence is closed before the sticky marker', async () => {
+  const { calls } = await run('comment', {
+    PINFOLD_TARGET: '7', PINFOLD_BODY: '{{ comment.body }}', PINFOLD_STICKY: 'ack',
+    PINFOLD_VARS: '["comment.body"]', T_V0: 'look:\n```\ncode',
+  });
+  assert.strictEqual(calls[0][1].body, 'look:\n```\ncode\n```\n<!-- pinfold:sticky:ack -->');
 });
 
 test('maintainer gate: allows only admin, maintain and write, by role_name', async () => {

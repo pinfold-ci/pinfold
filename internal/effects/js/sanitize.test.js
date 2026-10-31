@@ -43,7 +43,33 @@ test('sanitizeBody invariants hold for random input', () => {
 test('allowlisted mention stays a mention', () => {
   assert.strictEqual(S.sanitizeBody('thanks @octocat!', { allowMentions: ['OctoCat'] }), 'thanks @octocat!');
   assert.strictEqual(S.sanitizeBody('thanks @octocat!'), 'thanks @\u200boctocat!');
-  assert.strictEqual(S.sanitizeBody('see org/repo#12 and &#64;'), 'see org/repo#\u200b12 and &#64;');
+  assert.strictEqual(S.sanitizeBody('see org/repo#12 and x'), 'see org/repo#\u200b12 and x');
+});
+
+// Round-1 adversarial review (#32), finding B1: entities that render as @ or #.
+test('HTML entities cannot spell a mention or a ref', () => {
+  for (const e of ['&#64;admin', '&#x40;admin', '&commat;admin', '&#35;1', '&#x23;2', '&num;3', '&<!-- -->#123', '&#123 ']) {
+    const out = S.sanitizeBody(e);
+    assert.ok(!/&(#|commat;|num;)/.test(out), JSON.stringify(e) + ' -> ' + JSON.stringify(out));
+  }
+  assert.strictEqual(S.sanitizeBody('a & b <b>x</b>'), 'a &amp; b &lt;b>x&lt;/b>');
+});
+
+test('GH- refs and long refs are neutralised', () => {
+  assert.strictEqual(S.sanitizeBody('GH-123 gh-4'), 'GH-\u200b123 gh-\u200b4');
+  assert.strictEqual(S.sanitizeBody('#00000000001'), '#\u200b00000000001');
+});
+
+test('link cap counts www. and protocol-relative links', () => {
+  const out = S.sanitizeBody('www.a.com www.b.com [x](//c.com) https://d.com', { maxLinks: 1 });
+  assert.strictEqual(out, 'www.a.com [link removed] [x]([link removed]) [link removed]');
+  assert.strictEqual(S.sanitizeBody('notwww.a.com', { maxLinks: 0 }), 'notwww.a.com');
+});
+
+test('more invisible characters are stripped', () => {
+  for (const c of ['\u061c', '\u00ad', '\u034f', '\u180e', '\u115f', '\u3164', '\uffa0', '\ufe0f', '\u{e0041}', '\u{e0100}']) {
+    assert.strictEqual(S.sanitizeBody('a' + c + 'b'), 'ab', JSON.stringify(c));
+  }
 });
 
 test('byte cap never splits a character', () => {
@@ -76,7 +102,7 @@ test('label filter never returns anything outside the allowlist', () => {
 
 test('tag validation', () => {
   for (const ok of ['v1.2.3', 'release/v1', 'v1.0.0-rc.1']) assert.ok(S.validTag(ok), ok);
-  for (const bad of ['', 'v1;rm -rf', 'a b', '../etc', '/abs', 'trail/', 'x'.repeat(129), '$(id)', 'v1\n']) assert.ok(!S.validTag(bad), JSON.stringify(bad));
+  for (const bad of ['v1.lock', 'v1.', 'a/.b', '.v1', 'a//b', '-v1', '', 'v1;rm -rf', 'a b', '../etc', '/abs', 'trail/', 'x'.repeat(129), '$(id)', 'v1\n']) assert.ok(!S.validTag(bad), JSON.stringify(bad));
 });
 
 test('template renders only known placeholders, without control characters', () => {
