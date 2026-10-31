@@ -304,6 +304,8 @@ func (d *decoder) job(k, v *yaml.Node) *Job {
 			j.If = d.condition(f.val, true)
 		case "permissions":
 			j.Permissions = d.permissions(f.val)
+		case "ephemeral_runner":
+			j.EphemeralRunner, _ = d.boolean(f.val, "ephemeral_runner")
 		case "environment":
 			j.Environment, _ = d.str(f.val, "environment")
 		case "timeout-minutes":

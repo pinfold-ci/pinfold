@@ -310,6 +310,10 @@
             "pattern": "\\$\\{\\{"
           }
         },
+        "ephemeral_runner": {
+          "type": "boolean",
+          "description": "Assert that this job's runner is a fresh machine for every job (a GitHub larger runner, or an ephemeral or just-in-time self-hosted runner). Needed for feeder and privileged jobs on labels that aren't standard GitHub-hosted runners (PF315). Stamped in the generated file."
+        },
         "needs": {
           "oneOf": [
             {

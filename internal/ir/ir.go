@@ -5,6 +5,7 @@ package ir
 import (
 	"github.com/pinfold-ci/pinfold/internal/diag"
 	"github.com/pinfold-ci/pinfold/internal/spec"
+	"slices"
 )
 
 // Value, Condition and Effect are shared with the source format: they are
@@ -64,20 +65,21 @@ type Capability struct {
 
 // Job is one job.
 type Job struct {
-	ID             string
-	Span           diag.Span
-	Name           string
-	Runner         string
-	Needs          []string
-	If             *Condition
-	Zone           Zone
-	Capabilities   []Capability // sorted by resource
-	Environment    string
-	TimeoutMinutes int
-	Concurrency    *spec.Concurrency
-	Steps          []*Step
-	Produces       []spec.Artifact
-	Consumes       []spec.Consume
+	ID              string
+	Span            diag.Span
+	Name            string
+	Runner          string
+	EphemeralRunner bool // the spec asserts a fresh machine per job (security audit D1)
+	Needs           []string
+	If              *Condition
+	Zone            Zone
+	Capabilities    []Capability // sorted by resource
+	Environment     string
+	TimeoutMinutes  int
+	Concurrency     *spec.Concurrency
+	Steps           []*Step
+	Produces        []spec.Artifact
+	Consumes        []spec.Consume
 }
 
 // StepKind is the kind of a step.
@@ -101,4 +103,24 @@ type Step struct {
 	Uses   string
 	With   map[string]Value
 	Effect *Effect
+}
+
+// GitHubHostedRunners are the standard GitHub-hosted runner labels, which
+// give every job a fresh virtual machine. Source:
+// https://docs.github.com/en/actions/reference/runners/github-hosted-runners
+// (checked 2026-10-31). Trust zones depend on that (design §2): on any other
+// runner a job in a feeder or privileged zone needs ephemeral_runner: true.
+var GitHubHostedRunners = []string{
+	"ubuntu-latest", "ubuntu-slim", "ubuntu-26.04", "ubuntu-24.04", "ubuntu-22.04",
+	"ubuntu-26.04-arm", "ubuntu-24.04-arm", "ubuntu-22.04-arm",
+	"windows-latest", "windows-2025", "windows-2025-vs2026", "windows-2022",
+	"windows-11-arm", "windows-11-vs2026-arm",
+	"macos-latest", "macos-26", "macos-15", "macos-14", "macos-26-intel", "macos-15-intel", "xcode-27",
+}
+
+// FreshRunner reports whether j runs on a machine that is new for this job:
+// a standard GitHub-hosted label (exact case), or one the spec declares
+// ephemeral.
+func FreshRunner(j *Job) bool {
+	return j.EphemeralRunner || slices.Contains(GitHubHostedRunners, j.Runner)
 }

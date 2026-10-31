@@ -44,6 +44,8 @@
 | ⚠️ **Best-effort** | **`pinfold-verify.yml`** catches lock tampering, drift and security-relevant spec changes in PRs, but **only if** it's a *required* status check and `CODEOWNERS` covers `pinfold.yml`, `pinfold.lock` and `.github/workflows/`. Both are repo settings, which `pinfold init` prints as setup instructions · registry review is **per major version**, not per commit · lints on scripts in *unprivileged* jobs · build integrity beyond the digest binding (a compromised dependency inside your own build; a build script that fetches artifacts or caches by itself, e.g. `gh run download`, which the compiler can't see: feeder jobs may only receive artifacts through `consumes:`, PF307) | Documented prerequisites |
 | ❌ **Not protected** | Stolen credentials pushing hand-written workflows · hand-written workflows (including new ones a PR adds) · malicious code already in an action when it's first locked · a compromised runner or platform | Documented |
 
+**Assumption behind every zone claim: a fresh machine per job.** Feeder and privileged jobs must run on a standard GitHub-hosted runner, or on a runner the spec declares `ephemeral_runner: true` (a GitHub larger runner, or an ephemeral or just-in-time self-hosted runner). That assertion is stamped in the generated file's header, and anything else is PF315 (verifier PF911). On a persistent self-hosted runner, code from one job can act inside the next. A self-hosted runner registered under a GitHub-hosted label is an administrator's choice, covered by "a compromised runner or platform".
+
 ---
 
 ## 3. Requirements → milestone → test

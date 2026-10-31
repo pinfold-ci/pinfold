@@ -52,6 +52,11 @@ func header(w *ir.Workflow, specFile, specHash string) []string {
 	if w.UnsafeRun {
 		h = append(h, "pinfold:unsafe_run: this workflow opted out of Pinfold's guarantees.")
 	}
+	for _, j := range w.Jobs {
+		if j.EphemeralRunner {
+			h = append(h, ephemeralStamp(j.Name))
+		}
+	}
 	return h
 }
 
@@ -342,4 +347,10 @@ func strSeq(vals []string) emit.Seq {
 		out[i] = emit.Str(v)
 	}
 	return out
+}
+
+// ephemeralStamp is the header line for a job whose spec asserts a fresh
+// runner per job; the verifier requires it (security audit D1).
+func ephemeralStamp(job string) string {
+	return "pinfold:ephemeral_runner: job " + job + " relies on the spec's assertion that its runner is a fresh machine for every job."
 }

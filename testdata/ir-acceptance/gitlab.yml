@@ -37,6 +37,9 @@ constructs:
   job.runner:
     maps: unverified
     question: "Assumed to map directly; confirm."
+  job.ephemeral_runner:
+    maps: unverified
+    question: "Do GitLab SaaS runners give each job a fresh VM, and how would a spec say so for self-managed runners (ephemeral_runner: true)?"
   job.needs:
     maps: unverified
     question: "Assumed to map directly; confirm."

@@ -47,9 +47,9 @@ func TestZones(t *testing.T) {
 		{"run with an environment", wf(push, "        environment: prod\n        steps: [ { run: make } ]\n"), "PF301"},
 		{"run with OIDC", wf(push, "        permissions: { id-token: write }\n        steps: [ { run: make } ]\n"), "PF301"},
 		{"run in an unprivileged job", wf(push, "        permissions: { contents: read }\n        steps: [ { run: make } ]\n"), ""},
-		{"unsafe_run turns it off", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: x\n        steps: [ { run: make } ]\n", "PF310"},
-		{"unsafe_run keeps checkout hardening", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: x\n        steps: [ { uses: actions/checkout@v7, with: { ref: refs/pull/1/head } } ]\n", "PF310 PF303"},
-		{"unsafe_run keeps the cache rule", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: x\n        steps: [ { uses: actions/setup-python@v7, with: { cache: pip } } ]\n", "PF310 PF302"},
+		{"unsafe_run turns it off", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: ubuntu-24.04\n        steps: [ { run: make } ]\n", "PF310"},
+		{"unsafe_run keeps checkout hardening", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: ubuntu-24.04\n        steps: [ { uses: actions/checkout@v7, with: { ref: refs/pull/1/head } } ]\n", "PF310 PF303"},
+		{"unsafe_run keeps the cache rule", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: ubuntu-24.04\n        steps: [ { uses: actions/setup-python@v7, with: { cache: pip } } ]\n", "PF310 PF302"},
 		// PF304: actions in privileged jobs.
 		{"unknown action", wf(comment, "        steps: [ { uses: evil/action@v1 } ]\n"), "PF304"},
 		{"unreviewed major", wf(comment, "        steps: [ { uses: actions/checkout@v6 } ]\n"), "PF304"},
@@ -89,14 +89,14 @@ workflows:
     on: { push: { tags: ["v*"] } }
     jobs:
       build:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/setup-python@v7
             with: { cache: pip }
           - run: python -m build
         produces: { dist: dist/ }
       publish:
-        runner: x
+        runner: ubuntu-24.04
         needs: [build]
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
@@ -117,13 +117,13 @@ workflows:
     on: { push: { tags: ["v*"] } }
     jobs:
       build:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - ` + step + `
           - run: python -m build
         produces: { dist: dist/ }
       publish:
-        runner: x
+        runner: ubuntu-24.04
         needs: [build]
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
@@ -154,13 +154,13 @@ workflows:
     on: { push: { tags: ["v*"] } }
     jobs:
       version:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/setup-python@v7
             with: { cache: pip }
           - run: ./compute-version
       publish:
-        runner: x
+        runner: ubuntu-24.04
         needs: [version]
         permissions: { contents: write }
         steps:
@@ -179,19 +179,19 @@ workflows:
     on: { push: { tags: ["v*"] } }
     jobs:
       deps:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/setup-python@v7
             with: { cache: pip }
         produces: { wheels: wheels/ }
       build:
-        runner: x
+        runner: ubuntu-24.04
         needs: [deps]
         consumes: { wheels: { from: deps, to: wheels/ } }
         steps: [ { run: make } ]
         produces: { dist: dist/ }
       publish:
-        runner: x
+        runner: ubuntu-24.04
         needs: [build]
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
@@ -210,13 +210,13 @@ workflows:
     on: { issue_comment: { types: [created] } }
     jobs:
       check:
-        runner: x
+        runner: ubuntu-24.04
         if: { all: [ { maintainer: true } ] }
         permissions: { issues: write }
         steps:
           - { effect: add_labels, target: { context: issue.number }, labels: [triaged], allowed: [triaged] }
       ack:
-        runner: x
+        runner: ubuntu-24.04
         needs: [check]
         ` + "%s" + `
         permissions: { issues: write }
@@ -242,7 +242,7 @@ workflows:
     on: { push: { tags: ["v*"] } }
     jobs:
       deps:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/setup-python@v7
             with: { cache: pip }
@@ -251,7 +251,7 @@ workflows:
             with: { name: wheels, path: wheels/ }
       build:
         needs: [deps]
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/download-artifact@v8
             with: { name: wheels, path: wheels/ }
@@ -259,7 +259,7 @@ workflows:
         produces: { dist: dist/ }
       publish:
         needs: [build]
-        runner: x
+        runner: ubuntu-24.04
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -287,19 +287,60 @@ workflows:
     on: { push: { branches: [main] } }
     jobs:
       a:
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - run: make
           - uses: actions/upload-artifact@v7
             with: { name: out, path: out/ }
       b:
         needs: [a]
-        runner: x
+        runner: ubuntu-24.04
         steps:
           - uses: actions/download-artifact@v8
             with: { name: out, path: out/ }
 `
 	if got := check(t, plain); len(got) != 0 {
 		t.Errorf("unprivileged download: codes = %v, want none", got)
+	}
+}
+
+// TestRunnersAreFresh holds security audit finding D1: trust zones assume a
+// fresh machine per job. On a persistent runner, code from a feeder (or from
+// any other workflow) can wait on the machine for the privileged job (PF315).
+func TestRunnersAreFresh(t *testing.T) {
+	spec := func(build, publish, extra string) string {
+		return `version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      lint:
+        runner: self-hosted
+        steps: [ { run: make lint } ]
+      build:
+        runner: ` + build + `
+        steps: [ { run: python -m build } ]
+        produces: { dist: dist/ }
+      publish:
+        runner: ` + publish + `
+` + extra + `        needs: [build]
+        permissions: { id-token: write }
+        consumes: { dist: { from: build, to: dist/ } }
+        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
+`
+	}
+	tests := []struct{ name, src, want string }{
+		{"hosted runners (an unprivileged job may self-host)", spec("ubuntu-24.04", "ubuntu-latest", ""), ""},
+		{"audit D1: self-hosted feeder and publish", spec("self-hosted", "self-hosted", ""), "PF315 PF315"},
+		{"self-hosted publish only", spec("ubuntu-24.04", "my-runner", ""), "PF315"},
+		{"a look-alike label", spec("ubuntu-24.04", "Ubuntu-Latest", ""), "PF315"},
+		{"declared ephemeral", spec("ubuntu-24.04", "linux-large", "        ephemeral_runner: true\n"), ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := strings.Join(check(t, tt.src), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

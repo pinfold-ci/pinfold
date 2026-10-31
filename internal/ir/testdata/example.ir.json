@@ -35,6 +35,7 @@
           },
           "Name": "build",
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": null,
           "If": null,
           "Zone": "feeder",
@@ -102,6 +103,7 @@
           },
           "Name": "publish",
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": [
             "build"
           ],
@@ -169,6 +171,7 @@
           },
           "Name": "github-release",
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": [
             "publish"
           ],
@@ -298,6 +301,7 @@
           },
           "Name": "label",
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": null,
           "If": {
             "Span": {

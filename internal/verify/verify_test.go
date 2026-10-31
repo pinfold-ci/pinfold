@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pinfold-ci/pinfold/internal/adapter/github"
+	"github.com/pinfold-ci/pinfold/internal/diag"
 	"github.com/pinfold-ci/pinfold/internal/ir"
 	"github.com/pinfold-ci/pinfold/internal/load"
 	"github.com/pinfold-ci/pinfold/internal/spec"
@@ -309,5 +310,46 @@ func TestUnsafeRunStampMustBeInTheHeader(t *testing.T) {
 	}
 	if !stamped("# Generated\n# pinfold:unsafe_run: this workflow opted out\nname: x\n") {
 		t.Error("header stamp not found")
+	}
+}
+
+// TestRunnersAreFreshInOutput: feeder and privileged jobs run on a standard
+// GitHub-hosted runner, or on one the spec declares ephemeral, which the
+// header must say (security audit D1).
+func TestRunnersAreFreshInOutput(t *testing.T) {
+	p, files := example(t)
+	release, w := files[0].Content, p.Workflows[0]
+	publish := "  publish:\n    name: publish\n    needs:\n      - build\n    runs-on: ubuntu-24.04\n"
+	if !strings.Contains(release, publish) {
+		t.Fatal("anchor not found")
+	}
+	has := func(d diag.List, code string) bool {
+		for _, x := range d {
+			if x.Code == code {
+				return true
+			}
+		}
+		return false
+	}
+	if d := Workflow("t", release, w); len(d) != 0 {
+		t.Fatalf("clean output: %v", d)
+	}
+	selfHosted := strings.Replace(release, publish, strings.Replace(publish, "ubuntu-24.04", "self-hosted", 1), 1)
+	if d := Workflow("t", selfHosted, w); !has(d, "PF911") {
+		t.Errorf("self-hosted publish: want PF911, got %v", d)
+	}
+	// The IR says the publish job's runner is ephemeral, so its label is allowed
+	// only with the header stamp.
+	for _, j := range w.Jobs {
+		if j.Name == "publish" {
+			j.EphemeralRunner = true
+		}
+	}
+	if d := Workflow("t", selfHosted, w); !has(d, "PF911") {
+		t.Errorf("ephemeral without the header stamp: want PF911, got %v", d)
+	}
+	stamped := "# pinfold:ephemeral_runner: job publish relies on the spec's assertion that its runner is a fresh machine for every job.\n" + selfHosted
+	if d := Workflow("t", stamped, w); has(d, "PF911") {
+		t.Errorf("ephemeral with the stamp: want no PF911, got %v", d)
 	}
 }
