@@ -47,4 +47,5 @@ var catalogue = map[string]Entry{
 	"PF204": {Severity: diag.Error, Title: "Secret passed to an input that isn't a secret input"},
 	"PF401": {Severity: diag.Error, Title: "Missing permission"},
 	"PF402": {Severity: diag.Warning, Title: "Write permission nothing uses"},
+	"PF906": {Severity: diag.Error, Title: "Internal error: unrecognised script in a privileged job"},
 }

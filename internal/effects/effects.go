@@ -6,6 +6,8 @@ package effects
 import (
 	"embed"
 	"fmt"
+	"regexp"
+	"slices"
 	"sort"
 )
 
@@ -53,6 +55,19 @@ func Scripts() map[string]string {
 	for _, n := range names {
 		s, _ := Script(n)
 		out[n] = s
+	}
+	return out
+}
+
+var placeholderRE = regexp.MustCompile(`\{\{\s*([a-z_.]+)\s*\}\}`)
+
+// Placeholders returns the distinct {{ name }} placeholders in a comment body, in order.
+func Placeholders(body string) []string {
+	var out []string
+	for _, m := range placeholderRE.FindAllStringSubmatch(body, -1) {
+		if !slices.Contains(out, m[1]) {
+			out = append(out, m[1])
+		}
 	}
 	return out
 }

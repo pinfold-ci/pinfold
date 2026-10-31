@@ -36,3 +36,5 @@
 | 36 | PF203 | Branch name (`ref.name`) passed to an action input |
 | 37 | PF202 | Comment text in an environment variable not named `T_*` |
 | 38 | PF204 | Secret passed to an input that isn't a secret input |
+| 39 | PF122 | Comment template with an unknown placeholder (`{{ github.token }}`) |
+| 40 | PF122 | `from_comment_args` without a `comment.starts_with` condition |

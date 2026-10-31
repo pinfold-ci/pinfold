@@ -1,0 +1,2 @@
+testdata/malformed/39-unknown-placeholder.yml:10:13: error PF122: comment body uses unknown placeholder {{ github.token }}
+    hint: placeholders name contexts, e.g. {{ actor }} or {{ issue.number }}
