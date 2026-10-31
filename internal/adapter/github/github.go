@@ -9,6 +9,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/emit"
 	"github.com/pinfold-ci/pinfold/internal/ir"
+	"github.com/pinfold-ci/pinfold/internal/registry"
 	"github.com/pinfold-ci/pinfold/internal/spec"
 )
 
@@ -229,6 +230,9 @@ func step(s *ir.Step) emit.Map {
 		}
 		m = append(m, emit.Pair{Key: "run", Value: emit.Str(s.Run)})
 	case ir.Uses:
+		if e, reviewed, _ := registry.Lookup(s.Uses); e != nil && reviewed && e.Container != nil {
+			return containerStep(s, e)
+		}
 		m = append(m, emit.Pair{Key: "uses", Value: emit.Str(s.Uses), Comment: "pinfold:unlocked (pinned by the lock from milestone M4)"})
 		if len(s.With) > 0 {
 			m = append(m, emit.Pair{Key: "with", Value: values(s.With)})
@@ -237,6 +241,32 @@ func step(s *ir.Step) emit.Map {
 		return notYet(s.ID, fmt.Sprintf("the %q effect arrives in milestone M3", s.Effect.Name))
 	}
 	return m
+}
+
+// containerStep runs an action's published image pinned by digest instead of
+// the action itself (D-035). Inputs reach the image as INPUT_* environment
+// variables, with the action's defaults filled in; the zones pass has already
+// rejected inputs the registry doesn't map (PF306).
+func containerStep(s *ir.Step, e *registry.Entry) emit.Map {
+	c := e.Container
+	name := s.Name
+	if name == "" {
+		name = "pinfold: " + strings.SplitN(s.Uses, "@", 2)[0] + " (pinned container)"
+	}
+	env := map[string]ir.Value{}
+	for _, ci := range c.Inputs {
+		if ci.Default != "" {
+			env[ci.Env] = ir.Value{Kind: spec.Literal, Text: ci.Default}
+		}
+	}
+	for k, v := range s.With {
+		env[c.Inputs[k].Env] = v
+	}
+	return emit.Map{
+		{Key: "name", Value: emit.Str(name), Comment: generatedMarker + s.ID},
+		{Key: "uses", Value: emit.Str("docker://" + c.Ref()), Comment: s.Uses + " (" + c.Tag + ")"},
+		{Key: "env", Value: values(env)},
+	}
 }
 
 // notYet is a placeholder that fails the job: it fails closed rather than

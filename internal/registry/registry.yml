@@ -81,6 +81,18 @@ actions:
       image: ghcr.io/pypa/gh-action-pypi-publish
       tag: v1.14.3
       digest: sha256:a20ee5e9a490ada64fce0c9176418a4fd5afad3b80e70fb4745803c1309dcdfc
+      # Spec with: inputs and the environment variables the image's entrypoint
+      # (/app/twine-upload.sh) reads, with the defaults from the action's action.yml.
+      inputs:
+        user: {env: INPUT_USER, default: __token__}
+        password: {env: INPUT_PASSWORD}
+        repository-url: {env: INPUT_REPOSITORY_URL, default: "https://upload.pypi.org/legacy/"}
+        packages-dir: {env: INPUT_PACKAGES_DIR, default: dist}
+        verify-metadata: {env: INPUT_VERIFY_METADATA, default: "true"}
+        skip-existing: {env: INPUT_SKIP_EXISTING, default: "false"}
+        verbose: {env: INPUT_VERBOSE, default: "true"}
+        print-hash: {env: INPUT_PRINT_HASH, default: "true"}
+        attestations: {env: INPUT_ATTESTATIONS, default: "true"}
     reviewed:
       source: https://github.com/pypa/gh-action-pypi-publish/blob/v1.14.3/Dockerfile
       commit: 7245906fb61fa33a13554f9d5fb856fe61758086

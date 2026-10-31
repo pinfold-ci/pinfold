@@ -39,8 +39,23 @@ func TestEntriesAreComplete(t *testing.T) {
 				t.Errorf("%s: invalid capability %q", name, req)
 			}
 		}
-		if e.Container != nil && !strings.HasPrefix(e.Container.Digest, "sha256:") {
-			t.Errorf("%s: container must be pinned by sha256 digest", name)
+		if c := e.Container; c != nil {
+			if !strings.HasPrefix(c.Digest, "sha256:") || len(c.Digest) != 71 {
+				t.Errorf("%s: container must be pinned by a sha256 digest", name)
+			}
+			if len(c.Inputs) == 0 {
+				t.Errorf("%s: container entry lists no inputs", name)
+			}
+			for in, ci := range c.Inputs {
+				if !strings.HasPrefix(ci.Env, "INPUT_") {
+					t.Errorf("%s: input %s maps to %q, want an INPUT_ variable", name, in, ci.Env)
+				}
+			}
+			for _, s := range e.SecretInputs {
+				if _, ok := c.Inputs[s]; !ok {
+					t.Errorf("%s: secret input %s has no container mapping", name, s)
+				}
+			}
 		}
 		if e.PrivilegedOK && e.RestoresCache == "always" {
 			t.Errorf("%s: an action that always restores a cache can't be privileged_ok", name)

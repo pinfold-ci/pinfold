@@ -1,0 +1,14 @@
+version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      publish:
+        runner: ubuntu-24.04
+        environment: pypi
+        permissions: { id-token: write }
+        steps:
+          - uses: pypa/gh-action-pypi-publish@v1.14.3
+            with:
+              packages-dir: dist/
+              entrypoint: /bin/sh

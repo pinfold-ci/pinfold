@@ -1,0 +1,2 @@
+testdata/malformed/34-container-input-unsupported.yml:14:27: error PF306: input "entrypoint" isn't supported for pypa/gh-action-pypi-publish@v1.14.3, which Pinfold runs as a digest-pinned container
+    hint: supported inputs: [attestations packages-dir password print-hash repository-url skip-existing user verbose verify-metadata]

@@ -5,7 +5,7 @@ Pinfold runs [zizmor](https://docs.zizmor.sh/) on its own generated workflows in
 | Audit | Where | Why it's expected | Pinfold's mitigation |
 |---|---|---|---|
 | `dangerous-triggers` | Workflows on privileged triggers, such as `issue_comment` (`pinfold-triage.yml`) | zizmor flags `issue_comment` because hand-written workflows on it are usually injectable. Comment bots need the trigger. | Every job under a privileged trigger is a privileged job: no user `run:` steps, no tainted `${{ }}` in `run:`/`with:`/`script:`, effects only (design §2, §4). The verifier re-checks the output (PF904). |
-| `unpinned-uses` | User-written `uses:` steps (`pinfold-release.yml`) | **Temporary, until milestone M4.** User actions keep their tag and a `# pinfold:unlocked` comment until `pinfold lock` pins them. Actions Pinfold generates are already pinned by SHA. | From M4, every `uses:` is a commit SHA recorded in `pinfold.lock` (design §2, §7); this entry is then removed. |
+| `unpinned-uses` | User-written `uses:` steps, where a spec has them (none in the current goldens) | **Temporary, until milestone M4.** User actions keep their tag and a `# pinfold:unlocked` comment until `pinfold lock` pins them. Actions Pinfold generates are pinned by SHA, and container-lowered actions by image digest. | From M4, every `uses:` is a commit SHA recorded in `pinfold.lock` (design §2, §7); this entry is then removed. |
 
 ## Pedantic persona
 

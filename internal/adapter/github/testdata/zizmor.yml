@@ -5,6 +5,3 @@ rules:
   dangerous-triggers:
     ignore:
       - pinfold-triage.yml
-  unpinned-uses:
-    ignore:
-      - pinfold-release.yml

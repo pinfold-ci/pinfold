@@ -39,7 +39,17 @@ jobs:
           name: dist
           path: dist/
           digest-mismatch: error
-      - uses: pypa/gh-action-pypi-publish@v1.14.3 # pinfold:unlocked (pinned by the lock from milestone M4)
+      - name: 'pinfold: pypa/gh-action-pypi-publish (pinned container)' # pinfold:generated release/publish/step-1
+        uses: 'docker://ghcr.io/pypa/gh-action-pypi-publish@sha256:a20ee5e9a490ada64fce0c9176418a4fd5afad3b80e70fb4745803c1309dcdfc' # pypa/gh-action-pypi-publish@v1.14.3 (v1.14.3)
+        env:
+          INPUT_ATTESTATIONS: 'true'
+          INPUT_PACKAGES_DIR: dist
+          INPUT_PRINT_HASH: 'true'
+          INPUT_REPOSITORY_URL: 'https://upload.pypi.org/legacy/'
+          INPUT_SKIP_EXISTING: 'false'
+          INPUT_USER: __token__
+          INPUT_VERBOSE: 'true'
+          INPUT_VERIFY_METADATA: 'true'
   github-release:
     name: github-release
     needs:
