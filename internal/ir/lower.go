@@ -107,20 +107,52 @@ func holdsCredential(caps []Capability) bool {
 	return slices.ContainsFunc(caps, func(c Capability) bool { return c.Access == Write || c.Resource == "oidc" })
 }
 
-// markFeeders marks unprivileged jobs whose artifacts a privileged job consumes.
+// markFeeders marks every unprivileged job whose artifacts or outputs reach a
+// privileged job, directly or through other feeders (design §4).
 func markFeeders(w *Workflow) {
 	byName := map[string]*Job{}
 	for _, j := range w.Jobs {
 		byName[j.Name] = j
 	}
-	for _, j := range w.Jobs {
-		if j.Zone != ZonePrivileged {
-			continue
-		}
-		for _, c := range j.Consumes {
-			if src := byName[c.From.Name]; src != nil && src.Zone == ZoneUnprivileged {
-				src.Zone = ZoneFeeder
+	for changed := true; changed; {
+		changed = false
+		for _, j := range w.Jobs {
+			if j.Zone == ZoneUnprivileged {
+				continue
+			}
+			for _, src := range upstream(j) {
+				if s := byName[src]; s != nil && s.Zone == ZoneUnprivileged {
+					s.Zone = ZoneFeeder
+					changed = true
+				}
 			}
 		}
 	}
+}
+
+// upstream returns the jobs whose artifacts or outputs j consumes.
+func upstream(j *Job) []string {
+	var out []string
+	for _, c := range j.Consumes {
+		out = append(out, c.From.Name)
+	}
+	add := func(v *Value) {
+		if v != nil && v.Kind == spec.Output {
+			job, _, _ := strings.Cut(v.Text, ".")
+			out = append(out, job)
+		}
+	}
+	for _, s := range j.Steps {
+		for _, m := range []map[string]Value{s.Env, s.With} {
+			for _, v := range m {
+				add(&v)
+			}
+		}
+		if e := s.Effect; e != nil {
+			add(e.Target)
+			add(e.SHA)
+			add(e.Tag)
+		}
+	}
+	return out
 }

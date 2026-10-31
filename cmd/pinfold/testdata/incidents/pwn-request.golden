@@ -1,0 +1,10 @@
+testdata/incidents/pwn-request.yml:8:11: warning PF311: GitHub blocks pull_request_target by default in public repositories from 2026-12-02, so this workflow may never run
+    hint: keep this workflow for private repositories or ones with an Actions event policy that allows pull_request_target
+testdata/incidents/pwn-request.yml:13:13: error PF313: workflow "ci" runs on pull_request_target, which doesn't allow a uses step
+    hint: pull_request_target workflows may only label and comment, using the add_labels, remove_labels and comment effects
+testdata/incidents/pwn-request.yml:14:26: error PF303: actions/checkout@v7 input "ref" isn't allowed in a privileged context
+    hint: remove it; in privileged workflows Pinfold only checks out the trusted ref, without persisted credentials
+testdata/incidents/pwn-request.yml:15:13: error PF301: job "test" holds credentials (privileged trigger), so it can't run a user script
+    hint: move the script to an unprivileged job that produces an artifact, and consume it here; or use an effect
+testdata/incidents/pwn-request.yml:15:13: error PF313: workflow "ci" runs on pull_request_target, which doesn't allow a run step
+    hint: pull_request_target workflows may only label and comment, using the add_labels, remove_labels and comment effects

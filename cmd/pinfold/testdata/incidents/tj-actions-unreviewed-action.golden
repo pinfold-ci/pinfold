@@ -1,0 +1,2 @@
+testdata/incidents/tj-actions-unreviewed-action.yml:14:13: error PF304: job "changes" holds credentials (contents: write), and tj-actions/changed-files@v44 isn't in Pinfold's action registry
+    hint: only reviewed actions run in jobs that hold credentials; see the registry, or move this step to an unprivileged job
