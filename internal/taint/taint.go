@@ -11,6 +11,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/codes"
 	"github.com/pinfold-ci/pinfold/internal/diag"
+	"github.com/pinfold-ci/pinfold/internal/effects"
 	"github.com/pinfold-ci/pinfold/internal/ir"
 	"github.com/pinfold-ci/pinfold/internal/registry"
 	"github.com/pinfold-ci/pinfold/internal/spec"
@@ -62,6 +63,7 @@ func Check(s *spec.Spec, p *ir.Program) diag.List {
 					}
 				}
 				checkWith(st, class, add)
+				checkEffectSubject(j, st, class, add)
 			}
 		}
 	}
@@ -87,6 +89,26 @@ func checkWith(st *spec.Step, class ir.TriggerClass, add func(string, diag.Span,
 				hint = fmt.Sprintf("secret inputs of this action: %v", e.SecretInputs)
 			}
 			add("PF204", v.Span, hint, "secret %q is passed to input %q of %s, which isn't a known secret input", v.Text, k, st.Uses)
+		}
+	}
+}
+
+// checkEffectSubject: under a trigger outsiders can cause, event data may
+// only choose what a release or commit status acts on when a maintainer
+// triggered the run. Otherwise any commenter could create tags and releases
+// or forge a status check (security audit D3).
+func checkEffectSubject(j *spec.Job, st *spec.Step, class ir.TriggerClass, add func(string, diag.Span, string, string, ...any)) {
+	e := st.Effect
+	if st.Kind != spec.StepEffect || e == nil || class != ir.Privileged || effects.RequiresMaintainer(j.If) {
+		return
+	}
+	for _, f := range []struct {
+		name string
+		v    *spec.Value
+	}{{"tag", e.Tag}, {"sha", e.SHA}} {
+		if f.v != nil && Tainted(*f.v, class) {
+			add("PF205", f.v.Span, "add { maintainer: true } under the job's if: all:, or write the value out",
+				"effect %s in job %q takes its %s from untrusted %s %q, but the job doesn't require a maintainer", e.Name, j.Name, f.name, f.v.Kind, f.v.Text)
 		}
 	}
 }

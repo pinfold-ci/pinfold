@@ -82,3 +82,43 @@ func TestCheck(t *testing.T) {
 		})
 	}
 }
+
+// TestEventDrivenEffectsNeedTheGate holds security audit finding D3: under a
+// trigger outsiders can cause, a release tag or a commit status sha taken from
+// event data lets any commenter create releases or forge statuses (PF205),
+// unless the job requires a maintainer.
+func TestEventDrivenEffectsNeedTheGate(t *testing.T) {
+	job := func(on, perms, ifc, step string) string {
+		return `version: 0
+workflows:
+  bot:
+    on: ` + on + `
+    jobs:
+      rel:
+        runner: x
+` + ifc + `        permissions: ` + perms + `
+        steps:
+` + step
+	}
+	comment := "{ issue_comment: { types: [created] } }"
+	gate := "        if: { all: [ { comment: { starts_with: \"/release \" } }, { maintainer: true } ] }\n"
+	release := func(tag string) string {
+		return "          - effect: release\n            tag: " + tag + "\n            generate_notes: true\n"
+	}
+	status := "          - effect: commit_status\n            sha: { context: comment.body }\n            state: success\n            context: ci\n"
+	tests := []struct{ name, src, want string }{
+		{"audit D3: release tag from the comment", job(comment, "{ contents: write }", "", release("{ context: comment.body }")), "PF205"},
+		{"status sha from the comment", job(comment, "{ statuses: write }", "", status), "PF205"},
+		{"release tag from the comment, gated", job(comment, "{ contents: write }", gate, release("{ context: comment.body }")), ""},
+		{"status sha from the comment, gated", job(comment, "{ statuses: write }", gate, status), ""},
+		{"literal tag", job(comment, "{ contents: write }", "", release("v1.0.0")), ""},
+		{"tag push uses its own ref", job("{ push: { tags: [\"v*\"] } }", "{ contents: write }", "", release("{ context: ref.name }")), ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := strings.Join(check(t, tt.src), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
