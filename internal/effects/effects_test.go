@@ -32,8 +32,8 @@ func TestSanitizerProperties(t *testing.T) {
 // and no "${{", which GitHub would evaluate as an expression.
 func TestScriptsAreSafeLiterals(t *testing.T) {
 	scripts := Scripts()
-	if len(scripts) != 5 {
-		t.Fatalf("got %d scripts, want 5", len(scripts))
+	if len(scripts) != 6 {
+		t.Fatalf("got %d scripts, want 6", len(scripts))
 	}
 	for name, s := range scripts {
 		for i, r := range s {
