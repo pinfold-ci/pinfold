@@ -58,6 +58,10 @@ func Load(file string, src []byte) (*yaml.Node, diag.List) {
 		return nil, diag.List{codes.New("PF105", at(0, 0), "spec is not valid UTF-8", "save the file as UTF-8")}
 	}
 	src = Normalize(src)
+	if line, col, ok := unicodeBreak(src); ok {
+		return nil, diag.List{codes.New("PF105", at(line, col), "spec contains a Unicode line or paragraph separator (U+0085, U+2028 or U+2029)",
+			"remove it: YAML reads it as a line break, but editors and diffs may show one line, which can hide a key from a reviewer")}
+	}
 
 	dec := yaml.NewDecoder(bytes.NewReader(src))
 	var docs []*yaml.Node
@@ -158,4 +162,22 @@ func checkSubset(file string, n *yaml.Node, diags *diag.List) {
 	for _, c := range n.Content {
 		checkSubset(file, c, diags)
 	}
+}
+
+// unicodeBreak finds the first NEL, LS or PS. YAML treats them as line
+// breaks; many editors and diff views don't, so they could hide content on
+// what looks like a single line, and positions would disagree with the
+// editor's. The spec format is a strict subset, so they're rejected.
+func unicodeBreak(src []byte) (line, col int, ok bool) {
+	line, col = 1, 0
+	for _, r := range string(src) {
+		col++
+		switch r {
+		case '\n':
+			line, col = line+1, 0
+		case '\u0085', '\u2028', '\u2029':
+			return line, col, true
+		}
+	}
+	return 0, 0, false
 }
