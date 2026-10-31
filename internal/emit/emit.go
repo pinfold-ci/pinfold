@@ -63,10 +63,12 @@ func writeComment(b *strings.Builder, indent, text string) {
 	}
 }
 
-// sanitizeComment keeps a comment on one line and printable.
+// sanitizeComment keeps a comment on one line and printable. YAML parsers
+// also break lines at NEL, LS and PS, so those become spaces too.
 func sanitizeComment(s string) string {
+	s = strings.ToValidUTF8(s, " ")
 	return strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
+		if !printable(string(r)) || r == '\n' {
 			return ' '
 		}
 		return r

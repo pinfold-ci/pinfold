@@ -156,3 +156,12 @@ func FuzzRoundTrip(f *testing.F) {
 		roundTrip(t, s)
 	})
 }
+
+// Round-1 review (#32): YAML parsers break lines at NEL, LS and PS.
+func TestCommentLineBreaks(t *testing.T) {
+	for _, r := range []string{"\u0085", "\u2028", "\u2029", "\ufeff", "\n", "\x00", "\xff"} {
+		if got := sanitizeComment("a" + r + "b"); got != "a b" {
+			t.Errorf("sanitizeComment(%q) = %q", r, got)
+		}
+	}
+}
