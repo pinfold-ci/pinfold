@@ -196,7 +196,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 			{Key: "name", Value: emit.Str("pinfold: download " + c.Name), Comment: generatedMarker + j.ID + "/consume-" + c.Name},
 			{Key: "uses", Value: emit.Str(dl.ref), Comment: dl.tag},
 			{Key: "with", Value: emit.Map{
-				{Key: "name", Value: emit.Str(c.Name)},
+				{Key: "artifact-ids", Value: emit.Str("${{ steps." + bindID(c.Name) + ".outputs.id }}")},
 				{Key: "path", Value: emit.Str(c.To)},
 				{Key: "digest-mismatch", Value: emit.Str("error")},
 			}},

@@ -50,6 +50,10 @@ var gateEnv = map[string]string{
 	"T_TRIGGERING_ACTOR": "${{ github.triggering_actor }}",
 }
 
+// bindOutputRE is the bind step's checked artifact id, used only as the
+// artifact-ids input of the download step right after it (pinfold#63).
+var bindOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_bind_([a-z][a-z0-9-]{0,62})\.outputs\.id \}\}$`)
+
 var artifactOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_upload_[a-z][a-z0-9-]{0,62}\.outputs\.artifact-(id|digest) \}\}$`)
 
 // Workflow checks one generated file against the IR workflow it came from.
@@ -261,6 +265,8 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 			if !artifactOutputRE.MatchString(n.Value) {
 				v.report("PF904", n, "job output %s may only report a generated upload step's artifact id or digest", where)
 			}
+		case inStep(path, "with") && len(path) == 6 && path[5] == "artifact-ids" && bindOutputRE.MatchString(n.Value):
+			return // bindings checks it names the bind step right before
 		case inStep(path, "with"):
 			v.withRule(n, where)
 		default:
@@ -384,23 +390,35 @@ func (v *verifier) bindings(job *yaml.Node, name string) {
 		if uses == nil || !strings.HasPrefix(uses.Value, "actions/download-artifact@") {
 			continue
 		}
-		artifact := get(get(s, "with"), "name")
-		ok := i > 0 && artifact != nil
+		// The download fetches the artifact id that the bind step right before
+		// it checked, never a name: a same-name artifact uploaded after the
+		// check gets a new id (pinfold#63).
+		ids := get(get(s, "with"), "artifact-ids")
+		var artifact string
+		ok := i > 0 && ids != nil
+		if ok {
+			m := bindOutputRE.FindStringSubmatch(ids.Value)
+			ok = m != nil
+			if ok {
+				artifact = m[1]
+			}
+		}
 		if ok {
 			prev := steps.Content[i-1]
 			script := get(get(prev, "with"), "script")
 			bound := get(get(prev, "env"), "PINFOLD_NAME")
-			ok = script != nil && script.Value == bind && bound != nil && bound.Value == artifact.Value
+			id := get(prev, "id")
+			ok = script != nil && script.Value == bind && bound != nil && bound.Value == artifact && id != nil && id.Value == "pinfold_bind_"+artifact
 		}
 		if !ok {
 			v.report("PF908", uses, "job %q downloads an artifact without first checking it is the one its producer uploaded", name)
 			continue
 		}
-		// The download must fetch exactly what the bind step checked: by name,
-		// from this run, failing on a digest mismatch.
+		// The download must fetch exactly what the bind step checked: by that
+		// id, from this run, failing on a digest mismatch.
 		with := get(s, "with")
 		for i := 0; i+1 < len(with.Content); i += 2 {
-			if k := with.Content[i]; !slices.Contains([]string{"name", "path", "digest-mismatch"}, k.Value) {
+			if k := with.Content[i]; !slices.Contains([]string{"artifact-ids", "path", "digest-mismatch"}, k.Value) {
 				v.report("PF908", k, "artifact download in job %q sets %q", name, k.Value)
 			}
 		}

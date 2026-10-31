@@ -39,6 +39,7 @@ jobs:
       id-token: write # declared in the spec
     steps:
       - name: 'pinfold: check artifact dist' # pinfold:generated release/publish/bind-dist
+        id: pinfold_bind_dist
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PINFOLD_NAME: dist
@@ -188,7 +189,7 @@ jobs:
               return n;
             }
             // Artifact binding (design section 2): before a privileged job downloads an
-            // artifact by name, check that this run holds exactly one artifact with that
+            // artifact, check that this run holds exactly one artifact with that
             // name and that it is the one the producing job reported (id and digest).
             const name = cfg('NAME', '');
             const id = val('EXPECTED_ID');
@@ -202,10 +203,14 @@ jobs:
             const a = same[0];
             const got = String(a.digest || '').toLowerCase().replace(/^sha256:/, '');
             if (String(a.id) !== id || got !== digest) throw new Error('pinfold: artifact ' + name + ' is not the one its producing job uploaded');
+            // The download step fetches by this id, not by name (pinfold#63): another job
+            // in the run could replace a same-name artifact after this check, but the
+            // replacement gets a new id.
+            core.setOutput('id', id);
       - name: 'pinfold: download dist' # pinfold:generated release/publish/consume-dist
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: dist
+          artifact-ids: '${{ steps.pinfold_bind_dist.outputs.id }}'
           path: dist/
           digest-mismatch: error
       - name: 'pinfold: pypa/gh-action-pypi-publish (pinned container)' # pinfold:generated release/publish/step-1
@@ -230,6 +235,7 @@ jobs:
       contents: write # declared in the spec
     steps:
       - name: 'pinfold: check artifact dist' # pinfold:generated release/github-release/bind-dist
+        id: pinfold_bind_dist
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PINFOLD_NAME: dist
@@ -379,7 +385,7 @@ jobs:
               return n;
             }
             // Artifact binding (design section 2): before a privileged job downloads an
-            // artifact by name, check that this run holds exactly one artifact with that
+            // artifact, check that this run holds exactly one artifact with that
             // name and that it is the one the producing job reported (id and digest).
             const name = cfg('NAME', '');
             const id = val('EXPECTED_ID');
@@ -393,10 +399,14 @@ jobs:
             const a = same[0];
             const got = String(a.digest || '').toLowerCase().replace(/^sha256:/, '');
             if (String(a.id) !== id || got !== digest) throw new Error('pinfold: artifact ' + name + ' is not the one its producing job uploaded');
+            // The download step fetches by this id, not by name (pinfold#63): another job
+            // in the run could replace a same-name artifact after this check, but the
+            // replacement gets a new id.
+            core.setOutput('id', id);
       - name: 'pinfold: download dist' # pinfold:generated release/github-release/consume-dist
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: dist
+          artifact-ids: '${{ steps.pinfold_bind_dist.outputs.id }}'
           path: dist/
           digest-mismatch: error
       - name: 'pinfold: release' # pinfold:generated release/github-release/step-1
