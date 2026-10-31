@@ -12,6 +12,7 @@ import (
 
 	"github.com/pinfold-ci/pinfold/internal/ir"
 	"github.com/pinfold-ci/pinfold/internal/load"
+	"github.com/pinfold-ci/pinfold/internal/registry"
 	"github.com/pinfold-ci/pinfold/internal/spec"
 )
 
@@ -129,6 +130,52 @@ func TestReleasePermissions(t *testing.T) {
 	// github-release consumes from build without needing it directly: the adapter adds it.
 	if n := w.Jobs["github-release"].Needs; strings.Join(n, ",") != "publish,build" {
 		t.Errorf("github-release needs = %v, want [publish build]", n)
+	}
+}
+
+// TestContainerInputsAllSet: the PyPI image's script runs with set -u, so every
+// input it reads must be set, empty or not, as GitHub does for a real action.
+// The v0.0.1 live smoke run failed with "INPUT_PASSWORD: unbound variable".
+func TestContainerInputsAllSet(t *testing.T) {
+	var w struct {
+		Jobs map[string]struct {
+			Steps []struct {
+				Uses string            `yaml:"uses"`
+				Env  map[string]string `yaml:"env"`
+			} `yaml:"steps"`
+		} `yaml:"jobs"`
+	}
+	if err := yaml.Unmarshal([]byte(compileExample(t)[0].Content), &w); err != nil {
+		t.Fatal(err)
+	}
+	all, err := registry.All()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := all["pypa/gh-action-pypi-publish"]
+	if e == nil || e.Container == nil {
+		t.Fatal("registry entry for pypa/gh-action-pypi-publish has no container")
+	}
+	found := false
+	for _, st := range w.Jobs["publish"].Steps {
+		if !strings.HasPrefix(st.Uses, "docker://") {
+			continue
+		}
+		found = true
+		for name, ci := range e.Container.Inputs {
+			v, set := st.Env[ci.Env]
+			if !set {
+				t.Errorf("input %s: %s is not set", name, ci.Env)
+			} else if v != ci.Default {
+				t.Errorf("input %s: %s = %q, want the default %q", name, ci.Env, v, ci.Default)
+			}
+		}
+		if len(st.Env) != len(e.Container.Inputs) {
+			t.Errorf("container env has %d entries, want %d", len(st.Env), len(e.Container.Inputs))
+		}
+	}
+	if !found {
+		t.Fatal("no container step in the publish job")
 	}
 }
 
