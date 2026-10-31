@@ -14,6 +14,7 @@ import (
 	"github.com/pinfold-ci/pinfold/internal/codes"
 	"github.com/pinfold-ci/pinfold/internal/diag"
 	"github.com/pinfold-ci/pinfold/internal/ir"
+	"github.com/pinfold-ci/pinfold/internal/registry"
 )
 
 // allowedInWith lists the only expressions a with: value may contain: untainted
@@ -57,6 +58,7 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		}
 		v.permissions(job, j)
 		v.checkouts(job)
+		v.containers(job)
 	}
 	for name := range want {
 		if !seen[name] {
@@ -169,6 +171,34 @@ func (v *verifier) checkouts(job *yaml.Node) {
 			if n := get(with, k); n != nil {
 				v.report("PF903", n, "checkout overrides %s", k)
 			}
+		}
+	}
+}
+
+// containers checks that every docker:// step is a registry-listed image pinned by digest.
+func (v *verifier) containers(job *yaml.Node) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	all, err := registry.All()
+	if err != nil {
+		v.report("PF905", job, "registry unavailable: %v", err)
+		return
+	}
+	for _, s := range steps.Content {
+		uses := get(s, "uses")
+		if uses == nil || !strings.HasPrefix(uses.Value, "docker://") {
+			continue
+		}
+		ok := false
+		for _, e := range all {
+			if e.Container != nil && uses.Value == "docker://"+e.Container.Ref() {
+				ok = true
+			}
+		}
+		if !ok {
+			v.report("PF905", uses, "container image %q isn't a registry-listed image pinned by digest", uses.Value)
 		}
 	}
 }

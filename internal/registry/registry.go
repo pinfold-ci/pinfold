@@ -33,10 +33,20 @@ type Entry struct {
 
 // Container is a digest-pinned image Pinfold runs instead of the action (D-035).
 type Container struct {
-	Image  string `yaml:"image"`
-	Tag    string `yaml:"tag"`
-	Digest string `yaml:"digest"`
+	Image  string                    `yaml:"image"`
+	Tag    string                    `yaml:"tag"`
+	Digest string                    `yaml:"digest"`
+	Inputs map[string]ContainerInput `yaml:"inputs"`
 }
+
+// ContainerInput maps a with: input to the environment variable the image reads.
+type ContainerInput struct {
+	Env     string `yaml:"env"`
+	Default string `yaml:"default"`
+}
+
+// Ref returns the pinned image reference, e.g. ghcr.io/owner/image@sha256:....
+func (c *Container) Ref() string { return c.Image + "@" + c.Digest }
 
 // Review records where an entry's facts come from.
 type Review struct {

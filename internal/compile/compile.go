@@ -17,6 +17,7 @@ import (
 	"github.com/pinfold-ci/pinfold/internal/load"
 	"github.com/pinfold-ci/pinfold/internal/spec"
 	"github.com/pinfold-ci/pinfold/internal/verify"
+	"github.com/pinfold-ci/pinfold/internal/zones"
 )
 
 // Result is a successful compilation.
@@ -42,6 +43,7 @@ func Front(path string) (*ir.Program, []byte, diag.List) {
 	}
 	_, more := graph.Check(s)
 	diags = append(diags, more...)
+	diags = append(diags, zones.Check(s)...)
 	diags.Sort()
 	if diags.HasErrors() {
 		return nil, nil, diags

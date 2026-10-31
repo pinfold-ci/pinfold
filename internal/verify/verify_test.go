@@ -56,6 +56,8 @@ func TestBrokenAdapterOutput(t *testing.T) {
 		{"expression in job name", "    name: build\n", "    name: ${{ github.actor }}\n", "PF904"},
 		{"expression in if", "    needs:\n      - publish\n", "    needs:\n      - publish\n    if: ${{ github.event.issue.title }}\n", "PF904"},
 		{"alias hides an expression", "    name: build\n", "    name: &x build\n    environment: *x\n", "PF904"},
+		{"container digest swapped", "@sha256:a20ee5e9a490ada64fce0c9176418a4fd5afad3b80e70fb4745803c1309dcdfc", "@sha256:0000000000000000000000000000000000000000000000000000000000000000", "PF905"},
+		{"container by floating tag", "docker://ghcr.io/pypa/gh-action-pypi-publish@sha256:a20ee5e9a490ada64fce0c9176418a4fd5afad3b80e70fb4745803c1309dcdfc", "docker://ghcr.io/pypa/gh-action-pypi-publish:release-v1", "PF905"},
 		{"extra job", "jobs:\n", "jobs:\n  evil:\n    runs-on: x\n    permissions: {}\n    steps: []\n", "PF902"},
 	}
 	for _, tt := range tests {
