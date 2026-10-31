@@ -35,7 +35,7 @@ func TestPermissions(t *testing.T) {
 		{"checkout under contents write", "        permissions: { contents: write }\n        steps: [ { checkout: {} } ]\n", "PF402"},
 		{"comment with issues write", "        permissions: { issues: write }\n        steps:\n" + comment, ""},
 		{"comment with pull-requests write", "        permissions: { pull-requests: write }\n        steps:\n" + comment, ""},
-		{"comment with issues read", "        permissions: { issues: read }\n        steps:\n" + comment, "PF401"},
+		{"comment with issues read", "        permissions: { issues: read }\n        steps:\n" + comment, "PF403 PF401"},
 		{"comment with nothing", "        steps:\n" + comment, "PF401"},
 		{"release needs contents write", "        permissions: { contents: read }\n        steps:\n          - effect: release\n            tag: { context: ref.name }\n", "PF401"},
 		{"commit status", "        permissions: { statuses: write }\n        steps:\n          - effect: commit_status\n            sha: { context: commit.sha }\n            state: success\n            context: ci\n", ""},

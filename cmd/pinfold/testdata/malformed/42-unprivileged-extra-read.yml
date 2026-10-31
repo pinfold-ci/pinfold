@@ -1,0 +1,10 @@
+version: 0
+workflows:
+  ci:
+    on: { push: { branches: [main] } }
+    jobs:
+      test:
+        runner: ubuntu-24.04
+        permissions: { contents: read, packages: read }
+        steps:
+          - run: make test

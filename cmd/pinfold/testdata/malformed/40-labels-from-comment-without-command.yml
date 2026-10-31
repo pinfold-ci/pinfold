@@ -5,6 +5,7 @@ workflows:
     jobs:
       label:
         runner: ubuntu-24.04
+        if: { all: [ { maintainer: true } ] }
         permissions: { issues: write }
         steps:
           - effect: add_labels
