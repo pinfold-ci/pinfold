@@ -1,0 +1,17 @@
+# Shape of the Nx "s1ngularity" compromise (August 2025): a pull_request_target
+# workflow passed the PR title into a shell script, giving fork authors code
+# execution with the repository's publishing credentials.
+# Pinfold: even with the title safely in an environment variable, a script can't
+# run in a privileged job (PF301), and pull_request_target allows only label and
+# comment effects (PF313).
+version: 0
+workflows:
+  validate-title:
+    on: { pull_request_target: { types: [opened, edited] } }
+    jobs:
+      check:
+        runner: ubuntu-24.04
+        permissions: { pull-requests: write }
+        steps:
+          - run: ./scripts/check-title.sh "$T_TITLE"
+            env: { T_TITLE: { context: pr.title } }

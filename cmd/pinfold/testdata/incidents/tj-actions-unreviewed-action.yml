@@ -1,0 +1,14 @@
+# tj-actions/changed-files (March 2025): the action's tags were moved to a
+# malicious commit that dumped secrets into build logs.
+# Pinfold: jobs that hold credentials only run reviewed, privileged_ok actions
+# (PF304). Moved tags are caught by the lock in M4 (PF510).
+version: 0
+workflows:
+  release:
+    on: { push: { branches: [main] } }
+    jobs:
+      changes:
+        runner: ubuntu-24.04
+        permissions: { contents: write }
+        steps:
+          - uses: tj-actions/changed-files@v44

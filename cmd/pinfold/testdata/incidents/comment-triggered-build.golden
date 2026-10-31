@@ -1,0 +1,2 @@
+testdata/incidents/comment-triggered-build.yml:14:13: error PF301: job "build" holds credentials (privileged trigger, issues: write), so it can't run a user script
+    hint: move the script to an unprivileged job that produces an artifact, and consume it here; or use an effect

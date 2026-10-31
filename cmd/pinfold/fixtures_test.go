@@ -11,7 +11,8 @@ import (
 
 var update = flag.Bool("update", false, "rewrite golden files")
 
-// TestMalformedFixtures runs "pinfold validate" on every testdata/malformed/*.yml
+// TestMalformedFixtures runs "pinfold validate" on every testdata/malformed/*.yml and
+// testdata/incidents/*.yml
 // and compares the text output with the .golden file next to it.
 func TestMalformedFixtures(t *testing.T) {
 	files, err := filepath.Glob(filepath.Join("testdata", "malformed", "*.yml"))
@@ -21,6 +22,14 @@ func TestMalformedFixtures(t *testing.T) {
 	if len(files) < 25 {
 		t.Fatalf("found %d malformed fixtures, want at least 25 (M1 exit criterion)", len(files))
 	}
+	incidents, err := filepath.Glob(filepath.Join("testdata", "incidents", "*.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(incidents) < 5 {
+		t.Fatalf("found %d incident fixtures, want at least 5", len(incidents))
+	}
+	files = append(files, incidents...)
 	for _, f := range files {
 		t.Run(filepath.Base(f), func(t *testing.T) {
 			var stdout, stderr bytes.Buffer

@@ -33,4 +33,13 @@ var catalogue = map[string]Entry{
 	"PF904": {Severity: diag.Error, Title: "Internal error: expression in a forbidden place"},
 	"PF306": {Severity: diag.Error, Title: "Input not supported by a pinned container"},
 	"PF905": {Severity: diag.Error, Title: "Internal error: container image not pinned by the registry"},
+	"PF301": {Severity: diag.Error, Title: "User script in a job that holds credentials"},
+	"PF302": {Severity: diag.Error, Title: "Cache restore in a job that holds credentials"},
+	"PF303": {Severity: diag.Error, Title: "Checkout override in a privileged context"},
+	"PF304": {Severity: diag.Error, Title: "Action not allowed in a job that holds credentials"},
+	"PF305": {Severity: diag.Error, Title: "Cache restore in a job that feeds a privileged job"},
+	"PF310": {Severity: diag.Warning, Title: "unsafe_run turns guarantees off"},
+	"PF311": {Severity: diag.Warning, Title: "pull_request_target may be blocked"},
+	"PF312": {Severity: diag.Error, Title: "workflow_run workflows aren't supported"},
+	"PF313": {Severity: diag.Error, Title: "Step not allowed under pull_request_target"},
 }

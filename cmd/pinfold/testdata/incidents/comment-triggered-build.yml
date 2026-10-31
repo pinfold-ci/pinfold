@@ -1,0 +1,14 @@
+# A comment-triggered bot that checks out the repository and runs a build:
+# anyone who can comment can trigger code paths that run with write access.
+# Pinfold: every job on issue_comment is privileged, so no user scripts (PF301).
+version: 0
+workflows:
+  bot:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      build:
+        runner: ubuntu-24.04
+        permissions: { issues: write }
+        steps:
+          - checkout: {}
+          - run: make test

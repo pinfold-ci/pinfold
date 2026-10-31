@@ -251,6 +251,10 @@ func (d *decoder) triggers(n *yaml.Node, what string) []*Trigger {
 		k, v := n.Content[i], n.Content[i+1]
 		keys, ok := Triggers[k.Value]
 		if !ok {
+			if k.Value == "workflow_run" {
+				d.report("PF312", k, "keep this workflow hand-written for now", "user-written workflow_run workflows aren't supported")
+				continue
+			}
 			hint := unsupportedTriggers[k.Value]
 			if hint == "" {
 				hint = suggest(k.Value, sortedKeys(Triggers))

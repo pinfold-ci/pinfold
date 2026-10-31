@@ -43,12 +43,17 @@ func Front(path string) (*ir.Program, []byte, diag.List) {
 	}
 	_, more := graph.Check(s)
 	diags = append(diags, more...)
-	diags = append(diags, zones.Check(s)...)
+	if diags.HasErrors() {
+		diags.Sort()
+		return nil, nil, diags
+	}
+	p := ir.Lower(s)
+	diags = append(diags, zones.Check(s, p)...)
 	diags.Sort()
 	if diags.HasErrors() {
 		return nil, nil, diags
 	}
-	return ir.Lower(s), load.Normalize(src), diags
+	return p, load.Normalize(src), diags
 }
 
 // Run compiles the spec at path. Warnings may come back with a Result.

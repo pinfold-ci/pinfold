@@ -1,0 +1,15 @@
+# The classic "pwn request": pull_request_target runs with the base repository's
+# credentials, then checks out the fork's head and runs its code.
+# Pinfold: no checkout override in a privileged context (PF303), no scripts in
+# privileged jobs (PF301), only label/comment effects under pull_request_target (PF313).
+version: 0
+workflows:
+  ci:
+    on: { pull_request_target: { types: [opened, synchronize] } }
+    jobs:
+      test:
+        runner: ubuntu-24.04
+        steps:
+          - uses: actions/checkout@v7
+            with: { ref: refs/pull/1/head }
+          - run: make test
