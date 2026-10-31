@@ -112,8 +112,8 @@ func TestReleasePermissions(t *testing.T) {
 	}
 	want := map[string]map[string]string{
 		"build":          {"contents": "read"},
-		"publish":        {"id-token": "write"},
-		"github-release": {"contents": "write"},
+		"publish":        {"id-token": "write", "actions": "read"}, // actions: read is generated for artifact binding
+		"github-release": {"contents": "write", "actions": "read"},
 	}
 	for job, perms := range want {
 		got := w.Jobs[job].Permissions

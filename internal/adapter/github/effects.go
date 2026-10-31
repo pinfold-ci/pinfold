@@ -152,3 +152,24 @@ func guard(gated bool, m emit.Map) emit.Map {
 	out := emit.Map{m[0], {Key: "if", Value: emit.Str(gateCondition)}}
 	return append(out, m[1:]...)
 }
+
+// bindStep checks, before a download by name, that the run holds exactly the
+// artifact the producing job reported (id and digest), received through env.
+func bindStep(j *ir.Job, c spec.Consume) emit.Map {
+	script, err := effects.Script(effects.Bind)
+	if err != nil {
+		panic(err)
+	}
+	env := map[string]ir.Value{
+		"PINFOLD_NAME":      {Kind: spec.Literal, Text: c.Name},
+		"T_EXPECTED_ID":     {Kind: spec.Output, Text: c.From.Name + ".pinfold_" + c.Name + "_id"},
+		"T_EXPECTED_DIGEST": {Kind: spec.Output, Text: c.From.Name + ".pinfold_" + c.Name + "_digest"},
+	}
+	gs := generatedActions["script"]
+	return emit.Map{
+		{Key: "name", Value: emit.Str("pinfold: check artifact " + c.Name), Comment: generatedMarker + j.ID + "/bind-" + c.Name},
+		{Key: "uses", Value: emit.Str(gs.ref), Comment: gs.tag},
+		{Key: "env", Value: values(env)},
+		{Key: "with", Value: emit.Map{{Key: "script", Value: emit.Str(script)}}},
+	}
+}
