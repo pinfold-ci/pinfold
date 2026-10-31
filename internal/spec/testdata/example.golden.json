@@ -34,6 +34,7 @@
             "col": 7
           },
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": null,
           "If": null,
           "Permissions": [
@@ -101,6 +102,7 @@
             "col": 7
           },
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": [
             {
               "Name": "build",
@@ -171,6 +173,7 @@
             "col": 7
           },
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": [
             {
               "Name": "publish",
@@ -302,6 +305,7 @@
             "col": 7
           },
           "Runner": "ubuntu-24.04",
+          "EphemeralRunner": false,
           "Needs": null,
           "If": {
             "Span": {

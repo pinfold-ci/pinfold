@@ -37,6 +37,9 @@ constructs:
   job.runner:
     maps: unverified
     question: "Not planned; needs a design for a declarative Jenkinsfile subset."
+  job.ephemeral_runner:
+    maps: unverified
+    question: "Jenkins agents are usually persistent. Which agent setups (e.g. one-shot cloud or Kubernetes pods) justify ephemeral_runner: true?"
   job.needs:
     maps: unverified
     question: "Not planned; needs a design for a declarative Jenkinsfile subset."

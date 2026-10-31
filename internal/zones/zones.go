@@ -64,6 +64,13 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 	}
 	for ji, j := range w.Jobs {
 		zone := iw.Jobs[ji].Zone
+		// Zones assume a fresh machine per job (security audit D1): on a
+		// persistent runner, code from a feeder or any other workflow can
+		// wait on the machine for the privileged job.
+		if (zone == ir.ZoneFeeder || zone == ir.ZonePrivileged) && !ir.FreshRunner(iw.Jobs[ji]) {
+			c.add("PF315", j.Span, "use a GitHub-hosted runner (e.g. ubuntu-24.04), or add ephemeral_runner: true if this runner is a fresh machine for every job",
+				"job %q %s, but runs on %q, which isn't a standard GitHub-hosted runner, so Pinfold can't assume a fresh machine", j.Name, zoneWhat(zone), j.Runner)
+		}
 		for _, st := range j.Steps {
 			if prt {
 				c.metadataOnly(w, st)
@@ -269,4 +276,11 @@ func isDownloadArtifact(uses string) bool {
 	owner, rest, _ := strings.Cut(path, "/")
 	repo, _, _ := strings.Cut(rest, "/")
 	return strings.EqualFold(owner, "actions") && strings.EqualFold(repo, "download-artifact")
+}
+
+func zoneWhat(z ir.Zone) string {
+	if z == ir.ZonePrivileged {
+		return "holds credentials"
+	}
+	return "feeds a privileged job"
 }

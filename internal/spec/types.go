@@ -32,18 +32,19 @@ type Trigger struct {
 
 // Job is one job in a workflow.
 type Job struct {
-	Name           string
-	Span           diag.Span
-	Runner         string
-	Needs          []Ref
-	If             *Condition
-	Permissions    []Permission // in source order
-	Environment    string
-	TimeoutMinutes int
-	Concurrency    *Concurrency
-	Steps          []*Step
-	Produces       []Artifact
-	Consumes       []Consume
+	Name            string
+	Span            diag.Span
+	Runner          string
+	EphemeralRunner bool
+	Needs           []Ref
+	If              *Condition
+	Permissions     []Permission // in source order
+	Environment     string
+	TimeoutMinutes  int
+	Concurrency     *Concurrency
+	Steps           []*Step
+	Produces        []Artifact
+	Consumes        []Consume
 }
 
 // Ref is a reference to another job, with the position of the reference.

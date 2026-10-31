@@ -114,6 +114,7 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 			}
 		}
 		if j.Zone == ir.ZonePrivileged || j.Zone == ir.ZoneFeeder {
+			v.runner(job, j, content)
 			v.caches(job, j.Name, j.Zone)
 			// A feeder's downloads reach the privileged job too (audit F1).
 			v.bindings(job, j.Name)
@@ -635,4 +636,35 @@ func isDownloadArtifact(uses string) bool {
 	owner, rest, _ := strings.Cut(path, "/")
 	repo, _, _ := strings.Cut(rest, "/")
 	return strings.EqualFold(owner, "actions") && strings.EqualFold(repo, "download-artifact")
+}
+
+// runner checks that a feeder or privileged job runs on a fresh machine: a
+// standard GitHub-hosted label, or a runner the spec declares ephemeral, which
+// the header must then say (security audit D1).
+func (v *verifier) runner(job *yaml.Node, j *ir.Job, content string) {
+	r := get(job, "runs-on")
+	if r == nil || r.Kind != yaml.ScalarNode {
+		v.report("PF911", job, "job %q has no single runs-on label", j.Name)
+		return
+	}
+	if slices.Contains(ir.GitHubHostedRunners, r.Value) {
+		return
+	}
+	if !j.EphemeralRunner || !headerHas(content, "# pinfold:ephemeral_runner: job "+j.Name+" ") {
+		v.report("PF911", r, "job %q is in the %s zone but runs on %q, which isn't a GitHub-hosted runner, and no ephemeral_runner assertion is stamped", j.Name, j.Zone, r.Value)
+	}
+}
+
+// headerHas reports whether the file's leading comment block has a line
+// starting with prefix.
+func headerHas(content, prefix string) bool {
+	for _, line := range strings.Split(content, "\n") {
+		if !strings.HasPrefix(line, "#") {
+			return false
+		}
+		if strings.HasPrefix(line, prefix) {
+			return true
+		}
+	}
+	return false
 }

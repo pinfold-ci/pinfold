@@ -51,9 +51,11 @@ var catalogue = map[string]Entry{
 	"PF402": {Severity: diag.Warning, Title: "Write permission nothing uses"},
 	"PF403": {Severity: diag.Error, Title: "Read permission beyond contents in an unprivileged job"},
 	"PF314": {Severity: diag.Warning, Title: "Job depends on a gated job without its own gate"},
+	"PF315": {Severity: diag.Error, Title: "Feeder or privileged job on a runner that may not be fresh"},
 	"PF906": {Severity: diag.Error, Title: "Internal error: unrecognised script in a privileged job"},
 	"PF907": {Severity: diag.Error, Title: "Internal error: maintainer gate missing or bypassable"},
 	"PF908": {Severity: diag.Error, Title: "Internal error: artifact download without binding"},
 	"PF909": {Severity: diag.Error, Title: "Internal error: user code in a privileged job"},
+	"PF911": {Severity: diag.Error, Title: "Internal error: feeder or privileged job on a runner that may not be fresh"},
 	"PF910": {Severity: diag.Error, Title: "Internal error: cache restore in a privileged or feeder job"},
 }

@@ -37,6 +37,9 @@ constructs:
   job.runner:
     maps: unverified
     question: "Assumed to map directly; confirm."
+  job.ephemeral_runner:
+    maps: unverified
+    question: "Can Forgejo runners be ephemeral (one job per runner), so ephemeral_runner: true is true? Forgejo has no GitHub-hosted runners, so every feeder or privileged job needs it."
   job.needs:
     maps: unverified
     question: "Assumed to map directly; confirm."

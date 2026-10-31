@@ -58,16 +58,17 @@ func lowerWorkflow(w *spec.Workflow) *Workflow {
 
 func lowerJob(w *Workflow, j *spec.Job) *Job {
 	out := &Job{
-		ID:             w.ID + "/" + j.Name,
-		Span:           j.Span,
-		Name:           j.Name,
-		Runner:         j.Runner,
-		If:             j.If,
-		Environment:    j.Environment,
-		TimeoutMinutes: j.TimeoutMinutes,
-		Concurrency:    j.Concurrency,
-		Produces:       j.Produces,
-		Consumes:       j.Consumes,
+		ID:              w.ID + "/" + j.Name,
+		Span:            j.Span,
+		Name:            j.Name,
+		Runner:          j.Runner,
+		EphemeralRunner: j.EphemeralRunner,
+		If:              j.If,
+		Environment:     j.Environment,
+		TimeoutMinutes:  j.TimeoutMinutes,
+		Concurrency:     j.Concurrency,
+		Produces:        j.Produces,
+		Consumes:        j.Consumes,
 	}
 	for _, n := range j.Needs {
 		out.Needs = append(out.Needs, n.Name)

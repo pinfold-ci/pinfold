@@ -13,6 +13,8 @@ Design §2 lists what Pinfold **guarantees** for generated GitHub Actions workfl
 | 7 | Workflow `permissions: {}`; each job's permissions equal the declared plus generated set | PF401, PF402 | PF901, PF902 | `internal/permissions`, `internal/verify` |
 | 8 | Every `uses:` is a commit SHA matching `pinfold.lock` | lock (M4) | lock verifier (M4) | M4 |
 
+All zone rows assume a fresh machine per job: feeder and privileged jobs run on a GitHub-hosted runner or one the spec declares `ephemeral_runner: true`, stamped in the header (PF315, verifier PF911, `TestRunnersAreFresh`).
+
 Also verified on every output: container images are registry-listed and digest-pinned (PF905); github-script steps in privileged jobs run only generated effect scripts (PF906); the maintainer gate can't be removed or bypassed (PF907).
 
 The verifier also refuses anything the adapter never writes, so a bug can't slip a new way to run code past the checks above (PF904): unknown keys at workflow, job or step level (for example job `container:`/`services:`, workflow `env:`/`defaults:`, `continue-on-error:`), a second YAML document, a step `env:` that isn't a mapping, env names other than `T_*`/`PINFOLD_*` on generated scripts or `INPUT_*` on containers, tainted values under any env name except `T_*`, and credentials (`secrets.*`, `github.token`) in jobs that aren't privileged. Artifact downloads must fetch exactly what the bind step checked (PF908), and the gate's env is fixed (PF907).
