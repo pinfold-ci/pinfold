@@ -37,6 +37,9 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 	root := doc.Content[0]
 	v.expressions(root, nil)
 
+	if w.UnsafeRun && !strings.Contains(content, "pinfold:unsafe_run") {
+		v.report("PF909", root, "workflow sets unsafe_run but the generated file doesn't say so")
+	}
 	perms := get(root, "permissions")
 	if perms == nil || perms.Kind != yaml.MappingNode || len(perms.Content) != 0 {
 		v.report("PF901", nodeOr(perms, root), "workflow permissions must be {}")
@@ -65,6 +68,12 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		if j.Zone == ir.ZonePrivileged {
 			v.scripts(job)
 			v.bindings(job, j.Name)
+			if !w.UnsafeRun {
+				v.declarative(job, j.Name)
+			}
+		}
+		if j.Zone == ir.ZonePrivileged || j.Zone == ir.ZoneFeeder {
+			v.caches(job, j.Name, j.Zone)
 		}
 		if hasMaintainer(j.If) {
 			v.gate(job, j.Name)
@@ -250,6 +259,66 @@ func (v *verifier) bindings(job *yaml.Node, name string) {
 		}
 		if !ok {
 			v.report("PF908", uses, "job %q downloads an artifact without first checking it is the one its producer uploaded", name)
+		}
+	}
+}
+
+// generatedUses are the action references the adapter itself emits.
+var generatedUses = []string{
+	"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+	"actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+	"actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
+	"actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3",
+}
+
+// declarative checks design §2 row 1 on the output: a privileged job has no
+// run: step, and every action is generated, privileged_ok, or a registry
+// container pinned by digest.
+func (v *verifier) declarative(job *yaml.Node, name string) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	for _, s := range steps.Content {
+		if r := get(s, "run"); r != nil {
+			v.report("PF909", r, "job %q holds credentials but has a run: step", name)
+		}
+		uses := get(s, "uses")
+		if uses == nil || slices.Contains(generatedUses, uses.Value) || strings.HasPrefix(uses.Value, "docker://") {
+			continue // generated, or checked by PF905
+		}
+		if e, reviewed, err := registry.Lookup(uses.Value); err != nil || e == nil || !reviewed || !e.PrivilegedOK {
+			v.report("PF909", uses, "job %q holds credentials but uses %s, which isn't privileged_ok", name, uses.Value)
+		}
+	}
+}
+
+// caches checks design §2 row 5 on the output: no cache restore in a job that
+// holds credentials or feeds one.
+func (v *verifier) caches(job *yaml.Node, name string, zone ir.Zone) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	for _, s := range steps.Content {
+		uses := get(s, "uses")
+		if uses == nil {
+			continue
+		}
+		restores := strings.HasPrefix(uses.Value, "actions/cache@") || strings.HasPrefix(uses.Value, "actions/cache/restore@")
+		if e, _, err := registry.Lookup(uses.Value); err == nil && e != nil {
+			switch e.RestoresCache {
+			case "always":
+				restores = true
+			case "never":
+			default:
+				if in := get(get(s, "with"), e.RestoresCache); in != nil && in.Value != "" && in.Value != "false" {
+					restores = true
+				}
+			}
+		}
+		if restores {
+			v.report("PF910", uses, "job %q (%s) restores a cache with %s", name, zone, uses.Value)
 		}
 	}
 }
