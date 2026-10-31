@@ -109,6 +109,11 @@
           "Zone": "privileged",
           "Capabilities": [
             {
+              "Resource": "ci.actions",
+              "Access": "read",
+              "Source": "artifact binding"
+            },
+            {
               "Resource": "oidc",
               "Access": "write",
               "Source": "declared"
@@ -170,6 +175,11 @@
           "If": null,
           "Zone": "privileged",
           "Capabilities": [
+            {
+              "Resource": "ci.actions",
+              "Access": "read",
+              "Source": "artifact binding"
+            },
             {
               "Resource": "repo.contents",
               "Access": "write",

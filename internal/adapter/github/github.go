@@ -120,6 +120,15 @@ func job(w *ir.Workflow, j *ir.Job) emit.Map {
 			{Key: "cancel-in-progress", Value: emit.Bool(j.Concurrency.CancelInProgress)},
 		}})
 	}
+	if len(j.Produces) > 0 {
+		outs := emit.Map{}
+		for _, a := range j.Produces {
+			for _, f := range []string{"id", "digest"} {
+				outs = append(outs, emit.Pair{Key: "pinfold_" + a.Name + "_" + f, Value: emit.Str("${{ steps.pinfold_upload_" + a.Name + ".outputs.artifact-" + f + " }}")})
+			}
+		}
+		m = append(m, emit.Pair{Key: "outputs", Value: outs})
+	}
 	m = append(m, emit.Pair{Key: "steps", Value: steps(w, j)})
 	return m
 }
@@ -182,6 +191,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 	}
 	for _, c := range j.Consumes {
 		dl := generatedActions["download"]
+		out = append(out, guard(gated, bindStep(j, c)))
 		out = append(out, guard(gated, emit.Map{
 			{Key: "name", Value: emit.Str("pinfold: download " + c.Name), Comment: generatedMarker + j.ID + "/consume-" + c.Name},
 			{Key: "uses", Value: emit.Str(dl.ref), Comment: dl.tag},
@@ -199,6 +209,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 		up := generatedActions["upload"]
 		out = append(out, guard(gated, emit.Map{
 			{Key: "name", Value: emit.Str("pinfold: upload " + a.Name), Comment: generatedMarker + j.ID + "/produce-" + a.Name},
+			{Key: "id", Value: emit.Str("pinfold_upload_" + a.Name)},
 			{Key: "uses", Value: emit.Str(up.ref), Comment: up.tag},
 			{Key: "with", Value: emit.Map{
 				{Key: "name", Value: emit.Str(a.Name)},

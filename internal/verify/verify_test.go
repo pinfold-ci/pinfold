@@ -154,3 +154,35 @@ func TestMaintainerGateCantBeBypassed(t *testing.T) {
 		})
 	}
 }
+
+// TestArtifactBindingCantBeRemoved edits the release output: downloads in
+// privileged jobs need the binding step, and job outputs may only report the
+// generated upload's id and digest.
+func TestArtifactBindingCantBeRemoved(t *testing.T) {
+	p, files := example(t)
+	release, w := files[0].Content, p.Workflows[0]
+	start := strings.Index(release, "      - name: 'pinfold: check artifact dist' # pinfold:generated release/publish/bind-dist\n")
+	end := strings.Index(release, "      - name: 'pinfold: download dist' # pinfold:generated release/publish/consume-dist\n")
+	if start < 0 || end < 0 {
+		t.Fatal("anchors not found")
+	}
+	tests := []struct {
+		name, out, want string
+	}{
+		{"binding step removed", release[:start] + release[end:], "PF908"},
+		{"binding names another artifact", strings.Replace(release, "          PINFOLD_NAME: dist\n", "          PINFOLD_NAME: other\n", 1), "PF908"},
+		{"job output smuggles an expression", strings.Replace(release, "${{ steps.pinfold_upload_dist.outputs.artifact-id }}", "${{ github.event.head_commit.message }}", 1), "PF904"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := Workflow("t", tt.out, w)
+			found := false
+			for _, x := range d {
+				found = found || x.Code == tt.want
+			}
+			if !found {
+				t.Errorf("want %s, got %v", tt.want, d)
+			}
+		})
+	}
+}

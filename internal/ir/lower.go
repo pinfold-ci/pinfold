@@ -93,6 +93,10 @@ func lowerJob(w *Workflow, j *spec.Job) *Job {
 		}
 		out.Steps = append(out.Steps, step)
 	}
+	// Artifact binding lists this run's artifacts before each download (design §2).
+	if len(out.Consumes) > 0 && !slices.ContainsFunc(out.Capabilities, func(c Capability) bool { return c.Resource == "ci.actions" }) {
+		out.Capabilities = append(out.Capabilities, Capability{Resource: "ci.actions", Access: Read, Source: "artifact binding"})
+	}
 	slices.SortStableFunc(out.Capabilities, func(a, b Capability) int { return strings.Compare(a.Resource, b.Resource) })
 
 	out.Zone = ZoneUnprivileged

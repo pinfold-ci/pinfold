@@ -11,7 +11,7 @@ import (
 	"sort"
 )
 
-//go:embed js/sanitize.js js/common.js js/comment.js js/labels.js js/commit_status.js js/release.js js/gate.js
+//go:embed js/sanitize.js js/common.js js/comment.js js/labels.js js/commit_status.js js/release.js js/gate.js js/bind.js
 var files embed.FS
 
 // Sanitizer is the JavaScript sanitiser inlined into every effect script.
@@ -25,7 +25,11 @@ var bodies = map[string]string{
 	"commit_status": "commit_status.js",
 	"release":       "release.js",
 	Gate:            "gate.js",
+	Bind:            "bind.js",
 }
+
+// Bind is the pseudo-effect name of the artifact binding step.
+const Bind = "artifact_bind"
 
 // Gate is the pseudo-effect name of the maintainer gate step.
 const Gate = "maintainer_gate"

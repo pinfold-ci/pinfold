@@ -24,6 +24,8 @@ var allowedInWith = regexp.MustCompile(`^(github\.event\.pull_request\.number|gi
 
 var exprRE = regexp.MustCompile(`\$\{\{(.*?)\}\}`)
 
+var artifactOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_upload_[a-z][a-z0-9-]{0,62}\.outputs\.artifact-(id|digest) \}\}$`)
+
 // Workflow checks one generated file against the IR workflow it came from.
 func Workflow(file, content string, w *ir.Workflow) diag.List {
 	v := &verifier{file: file}
@@ -62,6 +64,7 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 		v.containers(job)
 		if j.Zone == ir.ZonePrivileged {
 			v.scripts(job)
+			v.bindings(job, j.Name)
 		}
 		if hasMaintainer(j.If) {
 			v.gate(job, j.Name)
@@ -114,6 +117,11 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 		switch {
 		case inStep(path, "env"):
 			return // the only place tainted values may appear (design §4)
+		case len(path) == 4 && path[0] == "jobs" && path[2] == "outputs":
+			// Only the artifact id and digest a generated upload step reports.
+			if !artifactOutputRE.MatchString(n.Value) {
+				v.report("PF904", n, "job output %s may only report a generated upload step's artifact id or digest", where)
+			}
 		case inStep(path, "with"):
 			rest := n.Value
 			for _, m := range exprRE.FindAllStringSubmatch(n.Value, -1) {
@@ -215,6 +223,33 @@ func (v *verifier) scripts(job *yaml.Node) {
 		}
 		if !ok {
 			v.report("PF906", uses, "github-script step in a privileged job doesn't run a generated effect script")
+		}
+	}
+}
+
+// bindings checks that, in a privileged job, every artifact download is
+// immediately preceded by a generated binding step for the same artifact.
+func (v *verifier) bindings(job *yaml.Node, name string) {
+	steps := get(job, "steps")
+	if steps == nil {
+		return
+	}
+	bind := effects.Scripts()[effects.Bind]
+	for i, s := range steps.Content {
+		uses := get(s, "uses")
+		if uses == nil || !strings.HasPrefix(uses.Value, "actions/download-artifact@") {
+			continue
+		}
+		artifact := get(get(s, "with"), "name")
+		ok := i > 0 && artifact != nil
+		if ok {
+			prev := steps.Content[i-1]
+			script := get(get(prev, "with"), "script")
+			bound := get(get(prev, "env"), "PINFOLD_NAME")
+			ok = script != nil && script.Value == bind && bound != nil && bound.Value == artifact.Value
+		}
+		if !ok {
+			v.report("PF908", uses, "job %q downloads an artifact without first checking it is the one its producer uploaded", name)
 		}
 	}
 }
