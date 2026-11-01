@@ -408,3 +408,38 @@ workflows:
 		t.Errorf("diagnostics = %v, want one PF314 error", diags)
 	}
 }
+
+// TestGatedCommentJobsNeedCreated (#64): a gated job on a comment trigger must
+// declare types: [created]. Without types the job also runs when a comment is
+// edited or deleted, by whoever did that (PF316). The gate script checks this
+// again at run time.
+func TestGatedCommentJobsNeedCreated(t *testing.T) {
+	wf := func(on string) string {
+		return `version: 0
+workflows:
+  triage:
+    on: ` + on + `
+    jobs:
+      label:
+        runner: ubuntu-24.04
+        if: { all: [ { comment: { starts_with: "/label " } }, { maintainer: true } ] }
+        permissions: { issues: write }
+        steps:
+          - { effect: add_labels, target: { context: issue.number }, labels: { from_comment_args: true }, allowed: [bug] }
+`
+	}
+	tests := []struct{ on, want string }{
+		{"{ issue_comment: { types: [created] } }", ""},
+		{"{ issue_comment: {} }", "PF316"},
+		{"{ issue_comment: { types: [created, edited] } }", "PF316"},
+		{"{ issue_comment: { types: [deleted] } }", "PF316"},
+		{"{ discussion_comment: {} }", "PF316"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.on, func(t *testing.T) {
+			if got := strings.Join(check(t, wf(tt.on)), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
