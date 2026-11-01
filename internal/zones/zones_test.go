@@ -344,3 +344,37 @@ workflows:
 		})
 	}
 }
+
+// TestReviewTriggersAreMetadataOnly holds Mythos audit finding D1: on
+// pull_request_review and pull_request_review_comment, GITHUB_SHA is the PR's
+// merge commit, so a privileged checkout gets the PR author's files. Like
+// pull_request_target, these workflows may only label and comment (PF313).
+func TestReviewTriggersAreMetadataOnly(t *testing.T) {
+	wf := func(on, steps string) string {
+		return `version: 0
+workflows:
+  review:
+    on: ` + on + `
+    jobs:
+      j:
+        runner: ubuntu-24.04
+        if: { all: [ { maintainer: true } ] }
+        permissions: { contents: write, pull-requests: write }
+        steps:
+` + steps
+	}
+	publish := "          - checkout: {}\n          - effect: release\n            tag: v9.9.9\n            files: [\"dist/*\"]\n"
+	label := "          - effect: add_labels\n            target: { context: pr.number }\n            labels: [reviewed]\n            allowed: [reviewed]\n"
+	tests := []struct{ name, src, want string }{
+		{"Mythos D1: review-triggered publish", wf("{ pull_request_review: { types: [submitted] } }", publish), "PF313 PF313"},
+		{"review comment trigger with a checkout", wf("{ pull_request_review_comment: { types: [created] } }", "          - checkout: {}\n"), "PF313"},
+		{"label bot on a review trigger is fine", wf("{ pull_request_review: { types: [submitted] } }", label), ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := strings.Join(check(t, tt.src), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
