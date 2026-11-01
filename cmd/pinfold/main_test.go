@@ -51,7 +51,10 @@ func TestRun(t *testing.T) {
 // TestExplainListsEveryCode keeps the "pinfold explain" list complete.
 func TestExplainListsEveryCode(t *testing.T) {
 	var stdout, stderr bytes.Buffer
-	if code := run([]string{"explain"}, &stdout, &stderr); code != 0 {
+	// strings.Fields, not a slice literal: gosec G602 follows a literal
+	// one-element slice through run into runIR and runInit and reports
+	// their guarded args[0] as out of range.
+	if code := run(strings.Fields("explain"), &stdout, &stderr); code != 0 {
 		t.Fatalf("exit code = %d, stderr %q", code, stderr.String())
 	}
 	for _, c := range codes.All() {

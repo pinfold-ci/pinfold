@@ -99,25 +99,31 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func runExplain(args []string, stdout, stderr io.Writer) int {
-	if len(args) == 0 {
-		for _, c := range codes.All() {
-			e, _ := codes.Lookup(c)
-			fmt.Fprintf(stdout, "%s  %-7s  %s\n", c, e.Severity, e.Title)
-		}
-		fmt.Fprintln(stdout, "\nRun \"pinfold explain <code>\" for the full page, e.g. pinfold explain PF301.")
+	switch len(args) {
+	case 0:
+		listCodes(stdout)
 		return 0
-	}
-	if len(args) != 1 {
-		fmt.Fprintln(stderr, "usage: pinfold explain <code>   (for example: pinfold explain PF110)")
+	case 1:
+		page, err := codes.Explain(args[0])
+		if err != nil {
+			fmt.Fprintf(stderr, "pinfold explain: %v\n", err)
+			return 2
+		}
+		fmt.Fprint(stdout, page)
+		return 0
+	default:
+		fmt.Fprintln(stderr, "usage: pinfold explain [code]   (for example: pinfold explain PF110)")
 		return 2
 	}
-	page, err := codes.Explain(args[0])
-	if err != nil {
-		fmt.Fprintf(stderr, "pinfold explain: %v\n", err)
-		return 2
+}
+
+// listCodes prints every diagnostic code with its severity and title.
+func listCodes(stdout io.Writer) {
+	for _, c := range codes.All() {
+		e, _ := codes.Lookup(c)
+		fmt.Fprintf(stdout, "%s  %-7s  %s\n", c, e.Severity, e.Title)
 	}
-	fmt.Fprint(stdout, page)
-	return 0
+	fmt.Fprintln(stdout, "\nRun \"pinfold explain <code>\" for the full page, e.g. pinfold explain PF301.")
 }
 
 // runValidate checks a spec. Exit 0: no errors (warnings allowed); 1: errors; 2: usage.
