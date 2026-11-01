@@ -60,7 +60,7 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 		for _, n := range j.Needs {
 			if gated[n.Name] && !gated[j.Name] {
 				c.add("PF314", n.Span, "add { maintainer: true } to this job's if: as well",
-					"job %q needs %q, which is behind the maintainer gate; a denied gate only skips that job's steps, so %q still runs", j.Name, n.Name, j.Name)
+					"job %q needs %q, which is behind the maintainer gate; a denied gate only skips that job's steps, so %q would still run for anyone", j.Name, n.Name, j.Name)
 			}
 		}
 	}
