@@ -158,6 +158,23 @@ test('maintainer gate: fails closed', async () => {
   assert.strictEqual((await run('maintainer_gate', {}, api)).outputs.ok, 'false');
 });
 
+// #64 and both audits: on a comment event the gate passes only for a new
+// comment written by the user who triggered the run. Otherwise a maintainer
+// deleting or editing someone else's "/label ..." comment would run the job
+// as the maintainer on that person's text.
+test('maintainer gate: comment events need a new comment by the actor', async () => {
+  const api = { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: 'admin' } }) };
+  const env = { T_ACTOR: 'octo', T_TRIGGERING_ACTOR: 'octo' };
+  const ev = (action, author) => ({ sender: { type: 'User' }, action, comment: { user: { login: author } } });
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('created', 'octo'))).outputs.ok, 'true');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('created', 'Octo'))).outputs.ok, 'true', 'logins compare without case');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('deleted', 'mallory'))).outputs.ok, 'false', 'deleted');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('edited', 'mallory'))).outputs.ok, 'false', 'edited, other author');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('edited', 'octo'))).outputs.ok, 'false', 'edited, own comment');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], ev('created', 'mallory'))).outputs.ok, 'false', 'someone else\'s comment');
+  assert.strictEqual((await run('maintainer_gate', env, api, [], { sender: { type: 'User' }, action: 'created', comment: {} })).outputs.ok, 'false', 'no author');
+});
+
 test('maintainer gate: looks up the triggering actor', async () => {
   const { calls } = await run('maintainer_gate', { T_ACTOR: 'octo', T_TRIGGERING_ACTOR: 'octo' },
     { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: 'write' } }) });

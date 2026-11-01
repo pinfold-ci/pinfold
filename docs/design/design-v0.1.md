@@ -113,6 +113,7 @@
 `maintainer: true` (allowed only at the top level of a job's `if: all:`) becomes a **generated first step**:
 - It calls `GET /repos/{repo}/collaborators/{triggering_actor}/permission`.
 - It reads `role_name` (not the legacy `permission` field) and **allows only `admin`, `maintain` or `write`**, plus custom role names the spec lists explicitly. Any status other than 200, a bot or app actor, or a mismatch between `actor` and `triggering_actor` counts as a deny.
+- On a comment event it also requires a **new** comment (`action: created`) written by the triggering user, and a gated job on a comment trigger must declare `types: [created]` (PF316). Otherwise editing or deleting someone else's command would run it with the maintainer's authority.
 - It sets `outputs.ok`. Every later step has `if: steps.pinfold_gate.outputs.ok == 'true'`, so a non-maintainer gets a **neutral skip, not a red X**.
 
 A job that `needs:` a gated job must carry its own gate (PF314, an error): a denied gate only skips the gated job's steps, and the job still succeeds.

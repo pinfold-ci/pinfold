@@ -56,6 +56,21 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 	for _, j := range w.Jobs {
 		gated[j.Name] = maintainerGated(j.If)
 	}
+	// A gated job on a comment trigger must run only for new comments: the
+	// gate checks the user who acted, and an edit or deletion of someone
+	// else's comment would pass their text to the job (#64).
+	for _, t := range w.On {
+		if !slices.Contains(commentEvents, t.Event) || slices.Equal(t.Types, []string{"created"}) {
+			continue
+		}
+		for _, j := range w.Jobs {
+			if gated[j.Name] {
+				c.add("PF316", t.Span, "add types: [created] to the trigger",
+					"job %q is behind the maintainer gate, but %s runs it for %s, not only for new comments", j.Name, t.Event, typesWhat(t.Types))
+				break
+			}
+		}
+	}
 	for _, j := range w.Jobs {
 		for _, n := range j.Needs {
 			if gated[n.Name] && !gated[j.Name] {
@@ -292,4 +307,15 @@ func zoneWhat(z ir.Zone) string {
 		return "holds credentials"
 	}
 	return "feeds a privileged job"
+}
+
+// commentEvents carry a comment written by someone who may not be the user
+// that triggered the run (an edit or a deletion).
+var commentEvents = []string{"issue_comment", "pull_request_review_comment", "discussion_comment"}
+
+func typesWhat(types []string) string {
+	if len(types) == 0 {
+		return "every activity type (created, edited and deleted)"
+	}
+	return "types " + strings.Join(types, ", ")
 }
