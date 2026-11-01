@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/pinfold-ci/pinfold/internal/adapter/github"
 	"github.com/pinfold-ci/pinfold/internal/diag"
@@ -100,16 +102,65 @@ func Drift(dir string, r *Result) ([]string, error) {
 	return out, nil
 }
 
-// Write writes the result's files under dir.
+// Write writes the result's files under dir. It never follows a symlink
+// below dir: a branch can commit .github/workflows/pinfold-*.yml, or a
+// directory on the way, as a link to a file elsewhere, and running the
+// compiler on that branch must not write through it (Mythos audit I1). Each
+// file is written to a temporary file and renamed into place.
 func Write(dir string, r *Result) error {
 	for _, f := range r.Files {
-		p := filepath.Join(dir, f.Path)
-		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil { // #nosec G301 -- workflow directories are normal repo directories
-			return err
-		}
-		if err := os.WriteFile(p, []byte(f.Content), 0o644); err != nil { // #nosec G306 -- workflows are normal, readable repo files
+		if err := writeFile(dir, f.Path, []byte(f.Content)); err != nil {
 			return fmt.Errorf("writing %s: %w", f.Path, err)
 		}
 	}
 	return nil
+}
+
+func writeFile(dir, rel string, content []byte) error {
+	parts := strings.Split(filepath.ToSlash(filepath.Clean(rel)), "/")
+	if filepath.IsAbs(rel) || slices.Contains(parts, "..") {
+		return fmt.Errorf("path escapes the spec's directory")
+	}
+	// Create or check each directory below dir without following links.
+	cur := dir
+	for _, part := range parts[:len(parts)-1] {
+		cur = filepath.Join(cur, part)
+		fi, err := os.Lstat(cur)
+		switch {
+		case os.IsNotExist(err):
+			if err := os.Mkdir(cur, 0o755); err != nil { // #nosec G301 -- workflow directories are normal repo directories
+				return err
+			}
+		case err != nil:
+			return err
+		case fi.Mode()&os.ModeSymlink != 0:
+			return fmt.Errorf("%s is a symbolic link; Pinfold doesn't write through links (remove it and compile again)", cur)
+		case !fi.IsDir():
+			return fmt.Errorf("%s isn't a directory", cur)
+		}
+	}
+	target := filepath.Join(cur, parts[len(parts)-1])
+	if fi, err := os.Lstat(target); err == nil && !fi.Mode().IsRegular() {
+		return fmt.Errorf("%s isn't a regular file (a symbolic link?); Pinfold doesn't write through links (remove it and compile again)", target)
+	} else if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	tmp, err := os.CreateTemp(cur, ".pinfold-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }() // no-op after a successful rename
+	if _, err := tmp.Write(content); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Chmod(0o644); err != nil { // #nosec G302 -- workflows are normal, readable repo files
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	// rename replaces the directory entry itself; it never follows a link.
+	return os.Rename(tmp.Name(), target)
 }
