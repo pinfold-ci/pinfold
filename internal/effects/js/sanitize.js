@@ -69,8 +69,10 @@ const PINFOLD_SANITIZER = (() => {
       bytes += len;
       out += ch;
     }
-    // Don't end on a dangling neutralised @ or # (a cut right after it).
-    out = out.replace(/[@#]\u200b?$/, '');
+    // Drop a mention or reference cut at the end: an allowlisted @torvaldsx1 or
+    // #1234 cut short would be a live mention of someone else, or a link to
+    // another issue (external audit I6). A neutralised one goes too.
+    out = out.replace(/(?:[@#]|\bGH-)\u200b?[A-Za-z0-9._\/-]*$/i, '');
     // Nor on part of an entity escapeHtml wrote (&amp; or &lt; cut short).
     out = out.replace(/&(?:a|am|amp|l|lt)?$/, '');
     return out + marker;

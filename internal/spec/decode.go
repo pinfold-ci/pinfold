@@ -129,7 +129,9 @@ func (d *decoder) str(n *yaml.Node, what string) (string, bool) {
 }
 
 func (d *decoder) boolean(n *yaml.Node, what string) (bool, bool) {
-	if n.Kind != yaml.ScalarNode || n.Tag != "!!bool" {
+	// Only the lowercase spellings: YAML also reads True and TRUE as booleans,
+	// which this compared as false (external audit V-F).
+	if n.Kind != yaml.ScalarNode || n.Tag != "!!bool" || (n.Value != "true" && n.Value != "false") {
 		d.report("PF112", n, "use true or false", "%s must be true or false", what)
 		return false, false
 	}
@@ -518,7 +520,7 @@ func (d *decoder) effect(step *yaml.Node, ef field) *Effect {
 		present[k.Value] = true
 		switch k.Value {
 		case "target":
-			e.Target = d.value(v, "target")
+			e.Target = d.effectValue(v, "target")
 		case "body":
 			e.Body, _ = d.str(v, "body")
 		case "sticky":
@@ -530,7 +532,7 @@ func (d *decoder) effect(step *yaml.Node, ef field) *Effect {
 		case "max":
 			e.Max, _ = d.integer(v, "max", 1, 100)
 		case "sha":
-			e.SHA = d.value(v, "sha")
+			e.SHA = d.effectValue(v, "sha")
 		case "state":
 			if st, ok := d.str(v, "state"); ok && d.oneOf(v, "commit state", st, commitStates) {
 				e.State = st
@@ -540,7 +542,7 @@ func (d *decoder) effect(step *yaml.Node, ef field) *Effect {
 		case "description":
 			e.Description, _ = d.str(v, "description")
 		case "tag":
-			e.Tag = d.value(v, "tag")
+			e.Tag = d.effectValue(v, "tag")
 		case "files":
 			e.Files = d.strList(v, "files", false)
 		case "generate_notes":
@@ -749,4 +751,16 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	slices.Sort(out)
 	return out
+}
+
+// effectValue decodes an effect's target, sha or tag. A secret there would be
+// written into a public tag, status or API call, so only literals, contexts
+// and outputs are accepted (external audit I5).
+func (d *decoder) effectValue(n *yaml.Node, what string) *Value {
+	v := d.value(n, what)
+	if v != nil && v.Kind == Secret {
+		d.report("PF112", n, "use a literal, a context or an output", "%s can't be a secret: the effect would publish it", what)
+		return nil
+	}
+	return v
 }

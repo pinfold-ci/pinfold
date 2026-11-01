@@ -63,6 +63,19 @@ test('mentions after a word character are neutralised', () => {
   assert.strictEqual(S.sanitizeBody('_@octocat_', { allowMentions: ['octocat'] }), '_@octocat_');
 });
 
+// External audit I6: truncation must not turn the allowlisted mention (or an
+// allowlisted ref) into a shorter, live one, such as @torvaldsx1 into @t.
+test('truncation never leaves a cut mention or ref', () => {
+  for (let n = 0; n < 30; n++) {
+    for (let mb = 16; mb < 60; mb++) {
+      const out = S.sanitizeBody('x'.repeat(n) + ' @torvaldsx1 #1234 tail', { allowMentions: ['torvaldsx1'], allowRefs: ['1234'], maxBytes: mb });
+      for (const m of out.match(/@[A-Za-z0-9][A-Za-z0-9-]*/g) || []) assert.strictEqual(m, '@torvaldsx1', JSON.stringify(out));
+      for (const r of out.match(/#\d+/g) || []) assert.strictEqual(r, '#1234', JSON.stringify(out));
+      assert.ok(new TextEncoder().encode(out).length <= mb, JSON.stringify(out));
+    }
+  }
+});
+
 // Round-1 adversarial review (#32), finding B1: entities that render as @ or #.
 test('HTML entities cannot spell a mention or a ref', () => {
   for (const e of ['&#64;admin', '&#x40;admin', '&commat;admin', '&#35;1', '&#x23;2', '&num;3', '&<!-- -->#123', '&#123 ']) {

@@ -89,6 +89,12 @@ func TestDiagnostics(t *testing.T) {
 		{"field effect doesn't take", base + "        steps:\n          - effect: comment\n            target: { context: issue.number }\n            body: hi\n            max: 3\n", []string{"PF122@12:13"}},
 		{"effect missing field", base + "        steps:\n          - effect: comment\n            body: hi\n", []string{"PF111@9:13"}},
 		{"bad commit state", base + "        steps:\n          - effect: commit_status\n            sha: { context: commit.sha }\n            state: ok\n            context: ci\n", []string{"PF113@11:20"}},
+		// External audit I5: a secret in an effect field would be published (as a tag, say).
+		{"secret as a release tag", base + "        steps:\n          - effect: release\n            tag: { secret: PYPI_API_TOKEN }\n", []string{"PF112@10:18"}},
+		{"secret as a status sha", base + "        steps:\n          - effect: commit_status\n            sha: { secret: X }\n            state: success\n            context: ci\n", []string{"PF112@10:18"}},
+		{"secret as a comment target", base + "        steps:\n          - effect: comment\n            target: { secret: X }\n            body: hi\n", []string{"PF112@10:21"}},
+		// External audit V-F: YAML reads True as a boolean; Pinfold read it as false.
+		{"capitalised boolean", base + "        steps:\n          - effect: release\n            tag: v1\n            draft: True\n", []string{"PF112@11:20"}},
 		{"docker uses", base + "        steps:\n          - uses: docker://alpine:3\n", []string{"PF123@9:19"}},
 		{"local uses", base + "        steps:\n          - uses: ./my-action\n", []string{"PF123@9:19"}},
 		{"sha uses", base + "        steps:\n          - uses: actions/checkout@0123456789abcdef0123456789abcdef01234567\n", []string{"PF123@9:19"}},
