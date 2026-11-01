@@ -378,3 +378,33 @@ workflows:
 		})
 	}
 }
+
+// TestUngatedDependantIsAnError holds Mythos audit finding D3: PF314 was a
+// warning, so the workflow was written and a dependant of a gated job ran its
+// privileged effects (here a release) for anyone who fired the trigger.
+func TestUngatedDependantIsAnError(t *testing.T) {
+	src := `version: 0
+workflows:
+  bot:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      approve:
+        runner: ubuntu-24.04
+        if: { all: [ { comment: { starts_with: "/release" } }, { maintainer: true } ] }
+        permissions: { issues: write }
+        steps:
+          - { effect: comment, target: { context: issue.number }, body: ok }
+      publish:
+        runner: ubuntu-24.04
+        needs: [approve]
+        permissions: { contents: write }
+        steps:
+          - { effect: release, tag: v9.9.9, generate_notes: true }
+`
+	root, _ := load.Load("t.yml", []byte(src))
+	s, _ := spec.Decode("t.yml", root)
+	diags := Check(s, ir.Lower(s))
+	if len(diags) != 1 || diags[0].Code != "PF314" || !diags.HasErrors() {
+		t.Errorf("diagnostics = %v, want one PF314 error", diags)
+	}
+}

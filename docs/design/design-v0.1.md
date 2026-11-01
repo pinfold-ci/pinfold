@@ -115,6 +115,8 @@
 - It reads `role_name` (not the legacy `permission` field) and **allows only `admin`, `maintain` or `write`**, plus custom role names the spec lists explicitly. Any status other than 200, a bot or app actor, or a mismatch between `actor` and `triggering_actor` counts as a deny.
 - It sets `outputs.ok`. Every later step has `if: steps.pinfold_gate.outputs.ok == 'true'`, so a non-maintainer gets a **neutral skip, not a red X**.
 
+A job that `needs:` a gated job must carry its own gate (PF314, an error): a denied gate only skips the gated job's steps, and the job still succeeds.
+
 The gate is **required** when event data chooses what an effect acts on under a trigger outsiders can cause: labels taken from the comment (PF122), and a release `tag` or commit status `sha` from event data (PF205).
 
 `association: [...]` is still available, documented as weaker.
