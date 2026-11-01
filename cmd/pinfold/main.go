@@ -28,9 +28,32 @@ Commands:
   ir         print the intermediate representation as JSON
   validate   check pinfold.yml and report problems
   schema     print the JSON Schema for pinfold.yml (for editors)
-  explain    explain a diagnostic code, e.g. "pinfold explain PF110"
+  explain    explain a diagnostic code, e.g. "pinfold explain PF110";
+             with no code, list every code
   version    print the compiler version
   help       show this help
+
+Getting started:
+  1. pinfold init        write a starter pinfold.yml in the repository root
+  2. edit pinfold.yml    one spec holds every workflow ("workflows:")
+  3. pinfold validate    errors come as file:line:col, a PFxxx code and a fix hint
+  4. pinfold compile     writes .github/workflows/pinfold-<name>.yml per workflow
+  5. commit pinfold.yml and the generated files together
+
+  Never edit the generated files: change pinfold.yml and compile again.
+  "pinfold compile --check" exits 2 when they are out of date (use it in CI).
+
+How a spec works:
+  Jobs that hold credentials (write permissions, id-token, secrets, an
+  environment, or any trigger other than push, schedule and manual) can't
+  run your own scripts. Build in an unprivileged job with "produces:", then
+  "consumes:" the artifact in the privileged job and use effects (comment,
+  add_labels, remove_labels, commit_status, release) or reviewed actions.
+  Event data (titles, comments, branch names) only reaches scripts through
+  env: names that start with T_.
+
+  "pinfold schema" prints a JSON Schema that describes every key, for
+  editors and coding agents.
 `
 
 func main() {
@@ -76,17 +99,31 @@ func run(args []string, stdout, stderr io.Writer) int {
 }
 
 func runExplain(args []string, stdout, stderr io.Writer) int {
-	if len(args) != 1 {
-		fmt.Fprintln(stderr, "usage: pinfold explain <code>   (for example: pinfold explain PF110)")
+	switch len(args) {
+	case 0:
+		listCodes(stdout)
+		return 0
+	case 1:
+		page, err := codes.Explain(args[0])
+		if err != nil {
+			fmt.Fprintf(stderr, "pinfold explain: %v\n", err)
+			return 2
+		}
+		fmt.Fprint(stdout, page)
+		return 0
+	default:
+		fmt.Fprintln(stderr, "usage: pinfold explain [code]   (for example: pinfold explain PF110)")
 		return 2
 	}
-	page, err := codes.Explain(args[0])
-	if err != nil {
-		fmt.Fprintf(stderr, "pinfold explain: %v\n", err)
-		return 2
+}
+
+// listCodes prints every diagnostic code with its severity and title.
+func listCodes(stdout io.Writer) {
+	for _, c := range codes.All() {
+		e, _ := codes.Lookup(c)
+		fmt.Fprintf(stdout, "%s  %-7s  %s\n", c, e.Severity, e.Title)
 	}
-	fmt.Fprint(stdout, page)
-	return 0
+	fmt.Fprintln(stdout, "\nRun \"pinfold explain <code>\" for the full page, e.g. pinfold explain PF301.")
 }
 
 // runValidate checks a spec. Exit 0: no errors (warnings allowed); 1: errors; 2: usage.
