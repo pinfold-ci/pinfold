@@ -2,6 +2,7 @@ package spec
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -104,4 +105,51 @@ func TestSchemaMatchesDecoder(t *testing.T) {
 	}
 	sameSet(t, "step kinds", append(kinds, "effect"), stepKinds)
 	sameSet(t, "effects", effects, sortedKeys(effectFields))
+}
+
+// TestSchemaDescribesEveryKey fails when a key in the JSON Schema has no
+// description: editors and coding agents only see what the schema says, so
+// every key, every $defs entry and every step form must explain itself.
+func TestSchemaDescribesEveryKey(t *testing.T) {
+	var root map[string]any
+	if err := json.Unmarshal(Schema, &root); err != nil {
+		t.Fatalf("schema is not valid JSON: %v", err)
+	}
+	described := func(where string, n any) {
+		t.Helper()
+		m, ok := n.(map[string]any)
+		if !ok {
+			t.Errorf("%s: not an object", where)
+			return
+		}
+		if d, _ := m["description"].(string); d == "" {
+			t.Errorf("%s: no description", where)
+		}
+	}
+	defs := root["$defs"].(map[string]any)
+	for name, def := range defs {
+		described("$defs/"+name, def)
+	}
+	for i, form := range defs["step"].(map[string]any)["oneOf"].([]any) {
+		described(fmt.Sprintf("$defs/step/oneOf/%d", i), form)
+	}
+	var walk func(path string, n any)
+	walk = func(path string, n any) {
+		switch v := n.(type) {
+		case map[string]any:
+			if props, ok := v["properties"].(map[string]any); ok {
+				for k, p := range props {
+					described(path+"/properties/"+k, p)
+				}
+			}
+			for k, c := range v {
+				walk(path+"/"+k, c)
+			}
+		case []any:
+			for i, c := range v {
+				walk(fmt.Sprintf("%s/%d", path, i), c)
+			}
+		}
+	}
+	walk("#", root)
 }
