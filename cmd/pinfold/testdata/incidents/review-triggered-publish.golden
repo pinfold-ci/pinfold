@@ -1,0 +1,4 @@
+testdata/incidents/review-triggered-publish.yml:17:13: error PF313: workflow "approve" runs on pull_request_review, which doesn't allow a checkout step
+    hint: pull_request_review workflows may only label and comment, using the add_labels, remove_labels and comment effects
+testdata/incidents/review-triggered-publish.yml:18:13: error PF313: workflow "approve" runs on pull_request_review, which doesn't allow a effect release step
+    hint: pull_request_review workflows may only label and comment, using the add_labels, remove_labels and comment effects

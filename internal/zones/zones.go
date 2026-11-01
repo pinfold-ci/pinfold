@@ -38,10 +38,12 @@ func (c *checker) add(code string, span diag.Span, hint, format string, args ...
 }
 
 func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
-	prt := false
+	metadataEvent := "" // the trigger that limits this workflow to metadata jobs
 	for _, t := range w.On {
+		if slices.Contains(metadataOnlyEvents, t.Event) && metadataEvent == "" {
+			metadataEvent = t.Event
+		}
 		if t.Event == "pull_request_target" {
-			prt = true
 			c.add("PF311", t.Span, "keep this workflow for private repositories or ones with an Actions event policy that allows pull_request_target",
 				"GitHub blocks pull_request_target by default in public repositories from 2026-12-02, so this workflow may never run")
 		}
@@ -72,8 +74,8 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 				"job %q %s, but runs on %q, which isn't a standard GitHub-hosted runner, so Pinfold can't assume a fresh machine", j.Name, zoneWhat(zone), j.Runner)
 		}
 		for _, st := range j.Steps {
-			if prt {
-				c.metadataOnly(w, st)
+			if metadataEvent != "" {
+				c.metadataOnly(w, metadataEvent, st)
 			}
 			c.step(w, iw, j, zone, st)
 		}
@@ -92,8 +94,15 @@ func maintainerGated(c *spec.Condition) bool {
 	return slices.ContainsFunc(c.All, maintainerGated) || slices.ContainsFunc(c.Any, maintainerGated)
 }
 
-// metadataOnly enforces the pull_request_target allowlist: label and comment effects only.
-func (c *checker) metadataOnly(w *spec.Workflow, st *spec.Step) {
+// metadataOnlyEvents run with the base repository's credentials while the
+// pull request's content is in reach: pull_request_target by design, and the
+// two review events because their GITHUB_SHA is the PR's merge commit, so a
+// default checkout gets the PR author's files (Mythos audit D1). Workflows on
+// them may only label and comment.
+var metadataOnlyEvents = []string{"pull_request_target", "pull_request_review", "pull_request_review_comment"}
+
+// metadataOnly enforces the metadata allowlist: label and comment effects only.
+func (c *checker) metadataOnly(w *spec.Workflow, event string, st *spec.Step) {
 	if st.Kind == spec.StepEffect && st.Effect != nil && slices.Contains(metadataEffects, st.Effect.Name) {
 		return
 	}
@@ -101,8 +110,8 @@ func (c *checker) metadataOnly(w *spec.Workflow, st *spec.Step) {
 	if st.Kind == spec.StepEffect && st.Effect != nil {
 		what = "effect " + st.Effect.Name
 	}
-	c.add("PF313", st.Span, "pull_request_target workflows may only label and comment, using the add_labels, remove_labels and comment effects",
-		"workflow %q runs on pull_request_target, which doesn't allow a %s step", w.Name, what)
+	c.add("PF313", st.Span, event+" workflows may only label and comment, using the add_labels, remove_labels and comment effects",
+		"workflow %q runs on %s, which doesn't allow a %s step", w.Name, event, what)
 }
 
 func (c *checker) step(w *spec.Workflow, iw *ir.Workflow, j *spec.Job, zone ir.Zone, st *spec.Step) {

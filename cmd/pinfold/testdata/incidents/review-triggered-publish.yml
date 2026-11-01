@@ -1,0 +1,20 @@
+# Review-triggered publish (Mythos audit D1, 2026-11-01). On pull_request_review
+# the default checkout is the PR's merge commit, so a privileged job that checks
+# out and releases would publish the PR author's files under the project's name.
+# (On fork PRs GitHub withholds write access; a branch inside the repository, or
+# a maintainer-gated job reviewing one, is enough.)
+# Pinfold: review triggers allow only label and comment effects (PF313).
+version: 0
+workflows:
+  approve:
+    on: { pull_request_review: { types: [submitted] } }
+    jobs:
+      publish:
+        runner: ubuntu-24.04
+        if: { all: [ { maintainer: true } ] }
+        permissions: { contents: write }
+        steps:
+          - checkout: {}
+          - effect: release
+            tag: v9.9.9
+            files: ["dist/*"]
