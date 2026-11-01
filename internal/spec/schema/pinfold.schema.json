@@ -11,9 +11,11 @@
   ],
   "properties": {
     "version": {
+      "description": "Spec format version. Only 0 exists.",
       "const": 0
     },
     "workflows": {
+      "description": "Workflows to generate, by name. Each one becomes .github/workflows/pinfold-<name>.yml.",
       "type": "object",
       "minProperties": 1,
       "propertyNames": {
@@ -30,6 +32,7 @@
   },
   "$defs": {
     "workflow": {
+      "description": "One workflow: its triggers and jobs.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -38,11 +41,13 @@
       ],
       "properties": {
         "on": {
+          "description": "Triggers. push, schedule and manual are trusted: jobs may run your scripts. Every other trigger is privileged: every job holds credentials and may only use effects and reviewed actions (design \u00a74).",
           "type": "object",
           "minProperties": 1,
           "additionalProperties": false,
           "properties": {
             "push": {
+              "description": "Trusted: a push to matching branches or tags.",
               "type": [
                 "object",
                 "null"
@@ -50,6 +55,7 @@
               "additionalProperties": false,
               "properties": {
                 "branches": {
+                  "description": "Branch name patterns, e.g. [main].",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -61,6 +67,7 @@
                   "minItems": 1
                 },
                 "tags": {
+                  "description": "Tag name patterns, e.g. [\"v*\"].",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -72,6 +79,7 @@
                   "minItems": 1
                 },
                 "paths": {
+                  "description": "Only run when a changed file matches one of these path patterns.",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -85,6 +93,7 @@
               }
             },
             "schedule": {
+              "description": "Trusted: run on a cron schedule.",
               "type": [
                 "object",
                 "null"
@@ -92,6 +101,7 @@
               "additionalProperties": false,
               "properties": {
                 "cron": {
+                  "description": "A cron expression in UTC, or a list of them, e.g. \"17 3 * * 1\".",
                   "oneOf": [
                     {
                       "type": "string",
@@ -116,6 +126,7 @@
               }
             },
             "manual": {
+              "description": "Trusted: run by hand from the Actions tab (workflow_dispatch). Takes no options.",
               "type": [
                 "object",
                 "null"
@@ -124,6 +135,7 @@
               "properties": {}
             },
             "issue_comment": {
+              "description": "Privileged: a comment on an issue or pull request. Anyone who can comment can fire it, so gate jobs with maintainer: true. A gated job needs types: [created] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -131,6 +143,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -144,6 +157,7 @@
               }
             },
             "issues": {
+              "description": "Privileged: issue activity (opened, labeled, \u2026).",
               "type": [
                 "object",
                 "null"
@@ -151,6 +165,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -164,6 +179,7 @@
               }
             },
             "pull_request_target": {
+              "description": "Privileged, metadata only: labels and comments on pull requests, no checkout. Warns PF311: GitHub blocks this trigger by default in public repositories from 2026-12-02.",
               "type": [
                 "object",
                 "null"
@@ -171,6 +187,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -182,6 +199,7 @@
                   "minItems": 1
                 },
                 "branches": {
+                  "description": "Base branch name patterns.",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -195,6 +213,7 @@
               }
             },
             "pull_request_review": {
+              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout.",
               "type": [
                 "object",
                 "null"
@@ -202,6 +221,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -215,6 +235,7 @@
               }
             },
             "pull_request_review_comment": {
+              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout.",
               "type": [
                 "object",
                 "null"
@@ -222,6 +243,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -235,6 +257,7 @@
               }
             },
             "discussion": {
+              "description": "Privileged: discussion activity.",
               "type": [
                 "object",
                 "null"
@@ -242,6 +265,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -255,6 +279,7 @@
               }
             },
             "discussion_comment": {
+              "description": "Privileged: a comment on a discussion.",
               "type": [
                 "object",
                 "null"
@@ -262,6 +287,7 @@
               "additionalProperties": false,
               "properties": {
                 "types": {
+                  "description": "Activity types to run on, e.g. [created]. Without it, GitHub's default set (which may include edits and deletions).",
                   "type": "array",
                   "items": {
                     "type": "string",
@@ -277,6 +303,7 @@
           }
         },
         "jobs": {
+          "description": "Jobs, by name. Lowercase letters, digits and hyphens.",
           "type": "object",
           "minProperties": 1,
           "propertyNames": {
@@ -291,11 +318,13 @@
           }
         },
         "unsafe_run": {
+          "description": "Turn off the trust-zone checks for this workflow so privileged jobs may run scripts. Stamped in the generated file's header and flagged as a security-relevant change. Avoid.",
           "type": "boolean"
         }
       }
     },
     "job": {
+      "description": "One job. Its zone (unprivileged, feeder or privileged) follows from its trigger, permissions, secrets, environment and what consumes its artifacts.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -304,6 +333,7 @@
       ],
       "properties": {
         "runner": {
+          "description": "Runner label (runs-on), e.g. ubuntu-24.04. Feeder and privileged jobs need a standard GitHub-hosted label, or ephemeral_runner: true (PF315).",
           "type": "string",
           "minLength": 1,
           "not": {
@@ -311,10 +341,11 @@
           }
         },
         "ephemeral_runner": {
-          "type": "boolean",
-          "description": "Assert that this job's runner is a fresh machine for every job (a GitHub larger runner, or an ephemeral or just-in-time self-hosted runner). Needed for feeder and privileged jobs on labels that aren't standard GitHub-hosted runners (PF315). Stamped in the generated file."
+          "description": "Assert that this job's runner is a fresh machine for every job (a GitHub larger runner, or an ephemeral or just-in-time self-hosted runner). Needed for feeder and privileged jobs on labels that aren't standard GitHub-hosted runners (PF315). Stamped in the generated file.",
+          "type": "boolean"
         },
         "needs": {
+          "description": "Job or jobs that must finish first.",
           "oneOf": [
             {
               "type": "string",
@@ -337,13 +368,16 @@
           ]
         },
         "if": {
+          "description": "When the job runs: a structured condition (no ${{ }} expressions).",
           "$ref": "#/$defs/condition"
         },
         "permissions": {
+          "description": "GITHUB_TOKEN scopes. The job gets exactly these plus what generated steps need, and nothing else. Any write scope or id-token makes the job privileged.",
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "actions": {
+              "description": "Workflow runs and artifacts.",
               "enum": [
                 "read",
                 "write",
@@ -351,6 +385,7 @@
               ]
             },
             "artifact-metadata": {
+              "description": "Artifact metadata.",
               "enum": [
                 "read",
                 "write",
@@ -358,6 +393,7 @@
               ]
             },
             "attestations": {
+              "description": "Artifact attestations.",
               "enum": [
                 "read",
                 "write",
@@ -365,6 +401,7 @@
               ]
             },
             "checks": {
+              "description": "Check runs and suites.",
               "enum": [
                 "read",
                 "write",
@@ -372,6 +409,7 @@
               ]
             },
             "code-quality": {
+              "description": "Code quality results.",
               "enum": [
                 "read",
                 "write",
@@ -379,6 +417,7 @@
               ]
             },
             "contents": {
+              "description": "Repository contents, commits, tags and releases.",
               "enum": [
                 "read",
                 "write",
@@ -386,12 +425,14 @@
               ]
             },
             "copilot-requests": {
+              "description": "Copilot requests.",
               "enum": [
                 "write",
                 "none"
               ]
             },
             "deployments": {
+              "description": "Deployments.",
               "enum": [
                 "read",
                 "write",
@@ -399,6 +440,7 @@
               ]
             },
             "discussions": {
+              "description": "Discussions.",
               "enum": [
                 "read",
                 "write",
@@ -406,12 +448,14 @@
               ]
             },
             "id-token": {
+              "description": "Request an OIDC token, e.g. for PyPI trusted publishing. Makes the job privileged.",
               "enum": [
                 "write",
                 "none"
               ]
             },
             "issues": {
+              "description": "Issues and their comments and labels.",
               "enum": [
                 "read",
                 "write",
@@ -419,6 +463,7 @@
               ]
             },
             "packages": {
+              "description": "GitHub Packages.",
               "enum": [
                 "read",
                 "write",
@@ -426,6 +471,7 @@
               ]
             },
             "pages": {
+              "description": "GitHub Pages builds.",
               "enum": [
                 "read",
                 "write",
@@ -433,6 +479,7 @@
               ]
             },
             "pull-requests": {
+              "description": "Pull requests and their comments and labels.",
               "enum": [
                 "read",
                 "write",
@@ -440,6 +487,7 @@
               ]
             },
             "security-events": {
+              "description": "Code scanning alerts.",
               "enum": [
                 "read",
                 "write",
@@ -447,6 +495,7 @@
               ]
             },
             "statuses": {
+              "description": "Commit statuses.",
               "enum": [
                 "read",
                 "write",
@@ -454,6 +503,7 @@
               ]
             },
             "vulnerability-alerts": {
+              "description": "Dependabot alerts.",
               "enum": [
                 "read",
                 "none"
@@ -462,6 +512,7 @@
           }
         },
         "environment": {
+          "description": "GitHub deployment environment, e.g. pypi. Makes the job privileged.",
           "type": "string",
           "minLength": 1,
           "not": {
@@ -469,11 +520,13 @@
           }
         },
         "timeout-minutes": {
+          "description": "Cancel the job after this many minutes (1\u2013360).",
           "type": "integer",
           "minimum": 1,
           "maximum": 360
         },
         "concurrency": {
+          "description": "Run at most one job of this group at a time.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -481,6 +534,7 @@
           ],
           "properties": {
             "group": {
+              "description": "Concurrency group name.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -488,11 +542,13 @@
               }
             },
             "cancel-in-progress": {
+              "description": "Cancel a running job of the same group when a new one starts.",
               "type": "boolean"
             }
           }
         },
         "steps": {
+          "description": "Steps, in order. Each is exactly one of checkout, run, uses or effect.",
           "type": "array",
           "minItems": 1,
           "items": {
@@ -500,6 +556,7 @@
           }
         },
         "produces": {
+          "description": "Artifacts this job uploads: name \u2192 path, e.g. { dist: dist/ }. Pinfold generates the upload and records the sha256 digest.",
           "type": "object",
           "propertyNames": {
             "type": "string",
@@ -517,6 +574,7 @@
           }
         },
         "consumes": {
+          "description": "Artifacts this job downloads from an earlier job: name \u2192 { from, to }. Pinfold generates the download and checks the digest. The only way a feeder or privileged job may receive artifacts (PF307).",
           "type": "object",
           "propertyNames": {
             "type": "string",
@@ -534,6 +592,7 @@
             ],
             "properties": {
               "from": {
+                "description": "Name of the job that produces the artifact.",
                 "type": "string",
                 "minLength": 1,
                 "not": {
@@ -541,6 +600,7 @@
                 }
               },
               "to": {
+                "description": "Directory to download it into, e.g. dist/.",
                 "type": "string",
                 "minLength": 1,
                 "not": {
@@ -553,8 +613,10 @@
       }
     },
     "step": {
+      "description": "A step: exactly one of checkout, run, uses or effect.",
       "oneOf": [
         {
+          "description": "Check out the repository with the pinned actions/checkout.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -562,6 +624,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -569,6 +632,7 @@
               }
             },
             "checkout": {
+              "description": "Check out the repository. Takes no options. Not allowed in metadata-only jobs.",
               "type": [
                 "object",
                 "null"
@@ -579,6 +643,7 @@
           }
         },
         {
+          "description": "Your own shell script. Not allowed in privileged jobs (PF301).",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -586,6 +651,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -593,6 +659,7 @@
               }
             },
             "run": {
+              "description": "Shell script. Event data can't appear here; pass it through env: with a T_ name.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -600,6 +667,7 @@
               }
             },
             "env": {
+              "description": "Environment variables for the script. Values that come from event data (tainted) need names matching T_[A-Z0-9_]+.",
               "type": "object",
               "propertyNames": {
                 "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
@@ -612,6 +680,7 @@
           }
         },
         {
+          "description": "A third-party action. Pinfold pins it to a commit SHA. Privileged jobs may only use registry actions marked privileged_ok (PF304).",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -619,6 +688,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -626,6 +696,7 @@
               }
             },
             "uses": {
+              "description": "owner/repo@tag or owner/repo/path@tag. No SHAs, branches, docker:// or local actions in privileged jobs.",
               "type": "string",
               "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9._-]+(/[A-Za-z0-9._/-]+)?@[A-Za-z0-9._/+-]+$",
               "not": {
@@ -633,6 +704,7 @@
               }
             },
             "with": {
+              "description": "Action inputs. Event data (tainted values) isn't allowed here.",
               "type": "object",
               "additionalProperties": {
                 "$ref": "#/$defs/value"
@@ -645,6 +717,7 @@
           }
         },
         {
+          "description": "Effect: post a sanitised comment on an issue or pull request.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -654,6 +727,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -661,12 +735,15 @@
               }
             },
             "effect": {
+              "description": "Effect name: comment.",
               "const": "comment"
             },
             "target": {
+              "description": "Issue or pull request number, e.g. { context: issue.number }.",
               "$ref": "#/$defs/value"
             },
             "body": {
+              "description": "Comment text. {{ name }} placeholders insert contexts, e.g. {{ actor }}. Sanitised: only @{{ actor }} can notify; other mentions and #refs are neutralised; links and size are capped.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -674,6 +751,7 @@
               }
             },
             "sticky": {
+              "description": "Marker name: update the bot's earlier comment with this marker instead of posting a new one.",
               "type": "string",
               "pattern": "^[a-z][a-z0-9-]{0,62}$",
               "not": {
@@ -683,6 +761,7 @@
           }
         },
         {
+          "description": "Effect: add labels to an issue or pull request.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -693,6 +772,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -700,15 +780,19 @@
               }
             },
             "effect": {
+              "description": "Effect name: add_labels.",
               "const": "add_labels"
             },
             "target": {
+              "description": "Issue or pull request number, e.g. { context: issue.number }.",
               "$ref": "#/$defs/value"
             },
             "labels": {
+              "description": "Labels: a list, or { from_comment_args: true } to take them from the comment.",
               "$ref": "#/$defs/labels"
             },
             "allowed": {
+              "description": "Allowlist: other labels are refused.",
               "type": "array",
               "items": {
                 "type": "string",
@@ -720,6 +804,7 @@
               "minItems": 1
             },
             "max": {
+              "description": "At most this many labels per run (1\u2013100; default 10).",
               "type": "integer",
               "minimum": 1,
               "maximum": 100
@@ -727,6 +812,7 @@
           }
         },
         {
+          "description": "Effect: remove labels from an issue or pull request.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -736,6 +822,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -743,15 +830,19 @@
               }
             },
             "effect": {
+              "description": "Effect name: remove_labels.",
               "const": "remove_labels"
             },
             "target": {
+              "description": "Issue or pull request number, e.g. { context: issue.number }.",
               "$ref": "#/$defs/value"
             },
             "labels": {
+              "description": "Labels: a list, or { from_comment_args: true } to take them from the comment.",
               "$ref": "#/$defs/labels"
             },
             "allowed": {
+              "description": "Allowlist: other labels are refused.",
               "type": "array",
               "items": {
                 "type": "string",
@@ -763,6 +854,7 @@
               "minItems": 1
             },
             "max": {
+              "description": "At most this many labels per run (1\u2013100; default 10).",
               "type": "integer",
               "minimum": 1,
               "maximum": 100
@@ -770,6 +862,7 @@
           }
         },
         {
+          "description": "Effect: set a commit status.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -780,6 +873,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -787,12 +881,15 @@
               }
             },
             "effect": {
+              "description": "Effect name: commit_status.",
               "const": "commit_status"
             },
             "sha": {
+              "description": "Commit to set the status on, e.g. { context: commit.sha }. From event data under a privileged trigger it needs maintainer: true (PF205).",
               "$ref": "#/$defs/value"
             },
             "state": {
+              "description": "error, failure, pending or success.",
               "enum": [
                 "error",
                 "failure",
@@ -801,6 +898,7 @@
               ]
             },
             "context": {
+              "description": "Status name shown on the commit, e.g. ci/docs.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -808,6 +906,7 @@
               }
             },
             "description": {
+              "description": "Short text shown next to the status.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -817,6 +916,7 @@
           }
         },
         {
+          "description": "Effect: create a GitHub Release.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -825,6 +925,7 @@
           ],
           "properties": {
             "name": {
+              "description": "Display name for the step.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -832,12 +933,15 @@
               }
             },
             "effect": {
+              "description": "Effect name: release.",
               "const": "release"
             },
             "tag": {
+              "description": "Tag to release, e.g. { context: ref.name }. Checked against ^[A-Za-z0-9._/-]{1,128}$. From event data under a privileged trigger it needs maintainer: true (PF205).",
               "$ref": "#/$defs/value"
             },
             "files": {
+              "description": "Files to attach (glob patterns), e.g. [\"dist/*\"].",
               "type": "array",
               "items": {
                 "type": "string",
@@ -849,12 +953,15 @@
               "minItems": 1
             },
             "generate_notes": {
+              "description": "Let GitHub generate release notes.",
               "type": "boolean"
             },
             "draft": {
+              "description": "Create the release as a draft.",
               "type": "boolean"
             },
             "prerelease": {
+              "description": "Mark the release as a pre-release.",
               "type": "boolean"
             }
           }
@@ -862,8 +969,10 @@
       ]
     },
     "value": {
+      "description": "A value: a literal, or exactly one of { context: NAME }, { secret: NAME }, { var: NAME } or { output: job.name }.",
       "oneOf": [
         {
+          "description": "A literal string, number or boolean.",
           "type": [
             "string",
             "number",
@@ -874,12 +983,14 @@
           }
         },
         {
+          "description": "A typed reference.",
           "type": "object",
           "additionalProperties": false,
           "minProperties": 1,
           "maxProperties": 1,
           "properties": {
             "context": {
+              "description": "Event or run data. Untainted: pr.number, issue.number, run.id, run.attempt, event.name, pr.author_association, repo.full_name, repo.default_branch, and commit.sha under trusted triggers. Everything else is tainted and may only reach env: (T_ names) or generated steps.",
               "enum": [
                 "actor",
                 "triggering_actor",
@@ -905,6 +1016,7 @@
               ]
             },
             "secret": {
+              "description": "A repository or environment secret by name. Makes the job privileged.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -912,6 +1024,7 @@
               }
             },
             "var": {
+              "description": "A repository or environment variable (vars.NAME).",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -919,6 +1032,7 @@
               }
             },
             "output": {
+              "description": "Another job's output, written job.name, e.g. build.version. Always tainted in a privileged job.",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -930,8 +1044,10 @@
       ]
     },
     "labels": {
+      "description": "Labels: a fixed list, or { from_comment_args: true }.",
       "oneOf": [
         {
+          "description": "A fixed list of labels.",
           "type": "array",
           "items": {
             "type": "string",
@@ -943,6 +1059,7 @@
           "minItems": 1
         },
         {
+          "description": "Take labels from the words after the command in the comment.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -950,6 +1067,7 @@
           ],
           "properties": {
             "from_comment_args": {
+              "description": "Take labels from the comment, e.g. \"/label bug docs\". Needs comment.starts_with and maintainer: true in the job's if (PF122).",
               "const": true
             }
           }
@@ -957,12 +1075,14 @@
       ]
     },
     "condition": {
+      "description": "A condition with exactly one key. Combine several with all: or any:.",
       "type": "object",
       "minProperties": 1,
       "maxProperties": 1,
       "additionalProperties": false,
       "properties": {
         "event": {
+          "description": "Trigger event name or names, e.g. issue_comment.",
           "oneOf": [
             {
               "type": "string",
@@ -985,6 +1105,7 @@
           ]
         },
         "branch": {
+          "description": "Exact branch name or names (the base branch for pull request events).",
           "oneOf": [
             {
               "type": "string",
@@ -1007,6 +1128,7 @@
           ]
         },
         "tag": {
+          "description": "Exact tag name or names (tag pushes).",
           "oneOf": [
             {
               "type": "string",
@@ -1029,6 +1151,7 @@
           ]
         },
         "label": {
+          "description": "Label name or names on the issue or pull request.",
           "oneOf": [
             {
               "type": "string",
@@ -1051,6 +1174,7 @@
           ]
         },
         "actor": {
+          "description": "User name or names. Weak on privileged jobs (PF322): prefer maintainer: true.",
           "oneOf": [
             {
               "type": "string",
@@ -1073,6 +1197,7 @@
           ]
         },
         "association": {
+          "description": "Author association(s) on the event. Weaker than maintainer: true.",
           "oneOf": [
             {
               "enum": [
@@ -1105,6 +1230,7 @@
           ]
         },
         "status": {
+          "description": "Run depending on earlier jobs: success, failure, always or not_cancelled.",
           "enum": [
             "always",
             "failure",
@@ -1113,6 +1239,7 @@
           ]
         },
         "comment": {
+          "description": "Match the comment text.",
           "type": "object",
           "additionalProperties": false,
           "required": [
@@ -1120,6 +1247,7 @@
           ],
           "properties": {
             "starts_with": {
+              "description": "The comment starts with this text, e.g. \"/label \".",
               "type": "string",
               "minLength": 1,
               "not": {
@@ -1129,9 +1257,11 @@
           }
         },
         "maintainer": {
+          "description": "Require write, maintain or admin access for the triggering user, checked by a generated first step. Only at the top level of the job's if: all:. Non-maintainers get a neutral skip.",
           "const": true
         },
         "all": {
+          "description": "All of these conditions.",
           "type": "array",
           "minItems": 1,
           "items": {
@@ -1139,6 +1269,7 @@
           }
         },
         "any": {
+          "description": "Any of these conditions.",
           "type": "array",
           "minItems": 1,
           "items": {
