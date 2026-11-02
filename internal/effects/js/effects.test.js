@@ -68,6 +68,21 @@ test('comment: sticky updates our own comment, ignores a forged marker', async (
   assert.strictEqual(calls[0][1].body, 'hi\n' + marker);
 });
 
+// Security audit: the marker counts only as our comment's last line, and it
+// names the workflow, so another workflow's sticky comment (or a bot comment
+// quoting the marker) is never overwritten.
+test('comment: sticky matches only its own marker on the last line', async () => {
+  const marker = '<!-- pinfold:sticky:triage/ack -->';
+  const { calls } = await run('comment', { PINFOLD_TARGET: '7', PINFOLD_BODY: 'hi', PINFOLD_STICKY: 'triage/ack' }, {
+    listComments: () => [
+      { id: 1, user: { login: 'github-actions[bot]', type: 'Bot' }, body: 'other\n<!-- pinfold:sticky:release/ack -->' },
+      { id: 2, user: { login: 'github-actions[bot]', type: 'Bot' }, body: marker + '\nquoted, then more text' },
+      { id: 3, user: { login: 'github-actions[bot]', type: 'Bot' }, body: 'old\n' + marker + '\n' },
+    ],
+  });
+  assert.deepStrictEqual(calls.map((c) => [c[0], c[1].comment_id]), [['updateComment', 3]]);
+});
+
 test('comment: sticky falls back to a new comment when the update is refused', async () => {
   const marker = '<!-- pinfold:sticky:ack -->';
   const { calls } = await run('comment', { PINFOLD_TARGET: '7', PINFOLD_BODY: 'hi', PINFOLD_STICKY: 'ack' }, {

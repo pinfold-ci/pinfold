@@ -130,7 +130,7 @@ func TestRoundTripTable(t *testing.T) {
 	for _, s := range []string{
 		"", " ", "on", "off", "~", "-", "- x", "? x", "!tag", "%x", "@x", "`x", "|", ">", "#", "a:b", "a: b", "a #b",
 		"line1\nline2", "line1\nline2\n", " lead\nx", "\nstart", "end\n\n", "tab\tin\nblock", "trail \nx",
-		"\u2028", "\ufeff", "é", "日本", "\"q\"", "'s'", "\\", "${{ x }}", "0o17", "1e3", "+1", ".5", ".inf", "1_000", "12:30",
+		"\u2028", "\ufeff", "\ufffe", "x\uffff\ny", "é", "日本", "\"q\"", "'s'", "\\", "${{ x }}", "0o17", "1e3", "+1", ".5", ".inf", "1_000", "12:30",
 	} {
 		roundTrip(t, s)
 	}

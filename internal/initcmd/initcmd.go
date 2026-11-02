@@ -31,6 +31,16 @@ Repository settings (Pinfold can't set these for you; see design §2, best-effor
        /pinfold.lock         @your-org/maintainers
        /.github/workflows/   @your-org/maintainers
 
+  4. For each environment a job names (for example pypi), open Settings >
+     Environments and add protection rules: required reviewers, and
+     "Deployment branches and tags" limited to your release tags (e.g. v*).
+     Enter the same environment name in the service's trusted publisher
+     (PyPI) or OIDC trust policy, so it trusts only that environment.
+  5. Protect your release tags with a tag ruleset (Settings > Rules >
+     Rulesets, target tags such as v*) using "Restrict creations",
+     "Restrict updates" and "Restrict deletions", so only maintainers can
+     push the tags that start a release.
+
 Update bots: leave pinfold's generated files to "pinfold lock --update" (milestone M4).
   Renovate (renovate.json):
        "ignorePaths": [".github/workflows/pinfold-*.yml"]

@@ -214,7 +214,7 @@ func printable(s string) bool {
 		return false
 	}
 	for _, r := range s {
-		if (unicode.IsControl(r) && r != '\n') || r == '\ufeff' || r == '\u2028' || r == '\u2029' || r == '\u0085' {
+		if (unicode.IsControl(r) && r != '\n') || r == '\ufeff' || r == '\u2028' || r == '\u2029' || r == '\u0085' || r == '\ufffe' || r == '\uffff' {
 			return false
 		}
 	}
@@ -237,7 +237,7 @@ func doubleQuoted(s string) string {
 			b.WriteString(`\n`)
 		case r == '\t':
 			b.WriteString(`\t`)
-		case r < 0x20 || r == 0x7f || r == '\ufeff' || r == '\u2028' || r == '\u2029' || r == '\u0085' || (unicode.IsControl(r) && r > 0x7f):
+		case r < 0x20 || r == 0x7f || r == '\ufeff' || r == '\u2028' || r == '\u2029' || r == '\u0085' || r == '\ufffe' || r == '\uffff' || (unicode.IsControl(r) && r > 0x7f):
 			fmt.Fprintf(&b, "\\u%04x", r)
 		default:
 			b.WriteRune(r)

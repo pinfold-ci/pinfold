@@ -14,8 +14,11 @@ if (sticky) {
   if (fences % 2 === 1) body += '\n```';
   body = body + '\n' + marker;
   const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
-  // Match on the marker AND our bot author: anyone can paste the marker.
-  const mine = comments.find((c) => c.user && c.user.login === 'github-actions[bot]' && c.user.type === 'Bot' && (c.body || '').includes(marker));
+  // Match on our bot author AND the marker as the comment's last line (where
+  // we put it): anyone can paste the marker, and the workflow name in it
+  // keeps other workflows' sticky comments apart.
+  const lastLine = (b) => String(b || '').trimEnd().split('\n').pop().trim();
+  const mine = comments.find((c) => c.user && c.user.login === 'github-actions[bot]' && c.user.type === 'Bot' && lastLine(c.body) === marker);
   if (mine) {
     try {
       await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });

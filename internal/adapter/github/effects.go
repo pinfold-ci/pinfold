@@ -42,7 +42,10 @@ func effectStep(w *ir.Workflow, j *ir.Job, s *ir.Step) emit.Map {
 		put("TARGET", e.Target)
 		lit("BODY", e.Body)
 		if e.Sticky != "" {
-			lit("STICKY", e.Sticky)
+			// Scoped to the workflow, so two workflows (or a hand-written one
+			// posting as github-actions[bot]) can't update each other's
+			// comment by sharing a marker name (security audit).
+			lit("STICKY", w.ID+"/"+e.Sticky)
 		}
 		vars := effects.Placeholders(e.Body)
 		if len(vars) > 0 {
