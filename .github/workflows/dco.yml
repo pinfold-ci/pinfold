@@ -1,0 +1,32 @@
+name: dco
+
+# Developer Certificate of Origin: every commit in a contributor's pull
+# request is signed off by its author. Maintainers' pull requests are exempt
+# (GOVERNANCE.md). Runs on pull_request: read-only token, no secrets.
+on:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: dco-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sign-off:
+    name: dco sign-off
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read # read the pull request's commits
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: check sign-offs
+        if: github.event.pull_request.author_association != 'OWNER' && github.event.pull_request.author_association != 'MEMBER'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: .github/scripts/dco-check.sh "$BASE" "$HEAD"

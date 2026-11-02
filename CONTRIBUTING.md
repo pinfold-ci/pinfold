@@ -26,6 +26,15 @@ Golden files live next to the tests in `testdata/`. To regenerate them after an 
 
 Contributions are accepted under the [Developer Certificate of Origin](https://developercertificate.org/). Sign off each commit with `git commit -s`, which adds a `Signed-off-by:` line with your name and email. By signing off you certify that you wrote the change or otherwise have the right to submit it under the project's license (Apache-2.0).
 
+The `dco` check on each pull request looks for a `Signed-off-by:` line with the **commit author's email** on every commit (merge commits excepted). If it fails, add the sign-off to every commit in your branch and force-push:
+
+```bash
+git rebase --signoff origin/main
+git push --force-with-lease
+```
+
+For a single commit, `git commit --amend -s --no-edit` does the same. Maintainers' own pull requests are exempt.
+
 ## AI-assisted contributions
 
 AI-assisted contributions are welcome if you **disclose** the assistance in the PR description and you **understand and can explain** every line you submit. You are responsible for the change, not the tool. Undisclosed, unreviewed AI output will be closed.
