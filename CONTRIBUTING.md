@@ -33,7 +33,7 @@ git rebase --signoff origin/main
 git push --force-with-lease
 ```
 
-For a single commit, `git commit --amend -s --no-edit` does the same. Maintainers' own pull requests are exempt.
+For a single commit, `git commit --amend -s --no-edit` does the same. Commits by the maintainers listed in `.github/dco-exempt-authors` are exempt.
 
 ## AI-assisted contributions
 
