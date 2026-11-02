@@ -136,6 +136,9 @@ func gateStep(w *ir.Workflow, j *ir.Job) emit.Map {
 		}
 		env[name] = v
 	}
+	if roles := gateRoles(j.If); roles != "" {
+		env["PINFOLD_ROLES"] = ir.Value{Kind: spec.Literal, Text: roles}
+	}
 	gs := generatedActions["script"]
 	return emit.Map{
 		{Key: "name", Value: emit.Str("pinfold: maintainer gate"), Comment: generatedMarker + j.ID + "/maintainer-gate"},

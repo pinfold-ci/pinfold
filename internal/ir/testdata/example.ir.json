@@ -322,7 +322,8 @@
                 "Values": [
                   "/label "
                 ],
-                "Flag": false
+                "Flag": false,
+                "Roles": null
               },
               {
                 "Span": {
@@ -334,13 +335,15 @@
                 "Any": null,
                 "Kind": "maintainer",
                 "Values": null,
-                "Flag": true
+                "Flag": true,
+                "Roles": null
               }
             ],
             "Any": null,
             "Kind": "all",
             "Values": null,
-            "Flag": false
+            "Flag": false,
+            "Roles": null
           },
           "Zone": "privileged",
           "Capabilities": [

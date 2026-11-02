@@ -506,3 +506,16 @@ func TestOIDCNeedsEnvironment(t *testing.T) {
 		}
 	}
 }
+
+// TestActorConditionOnPrivilegedJob (design §5): actor: on a job that holds
+// credentials is a PF322 warning; on an unprivileged job it is fine.
+func TestActorConditionOnPrivilegedJob(t *testing.T) {
+	priv := "        if: { actor: octocat }\n        permissions: { contents: write }\n        steps: [ { effect: release, tag: v1 } ]\n"
+	plain := "        if: { any: [ { actor: octocat } ] }\n        steps: [ { run: make } ]\n"
+	if got := strings.Join(check(t, wf(`{ push: { tags: ["v*"] } }`, priv)), " "); got != "PF322" {
+		t.Errorf("privileged: codes = %q, want PF322", got)
+	}
+	if got := strings.Join(check(t, wf(`{ push: {} }`, plain)), " "); got != "" {
+		t.Errorf("unprivileged: codes = %q, want none", got)
+	}
+}

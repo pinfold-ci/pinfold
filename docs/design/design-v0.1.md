@@ -33,7 +33,7 @@
 
 | Level | Claim | Enforced by |
 |---|---|---|
-| ✅ **Guaranteed** | No job holding secrets, OIDC or write permissions contains a user `run:` step, or an action not marked `privileged_ok` (meaning: *runs no repo-controlled code, and has no unpinned nested references*), unless `unsafe_run` is set, which is stamped in the header and turns these claims off | Zones + verifier |
+| ✅ **Guaranteed** | No job holding secrets, OIDC or write permissions contains a user `run:` step, or an action not marked `privileged_ok` (meaning: *runs no repo-controlled code, and has no unpinned nested references*; an action whose own build floats, such as a Dockerfile `FROM` a moving tag, may instead run as its published image **pinned by digest**, from the registry, PF905, D-035), unless `unsafe_run` is set, which is stamped in the header and turns these claims off | Zones + verifier |
 | ✅ | **No tainted `${{ }}` in any `run:`, `script:` or `with:` value, with no exceptions.** Tainted values appear only in `env:` (named `T_*`) and in compiler-generated `if:` | Taint + verifier (checks every key) |
 | ✅ | Contexts are **tainted by default**, including `ref.name` | Taint table |
 | ✅ | Generated checkouts never override `repository`/`ref` in privileged workflows; `persist-credentials: false` is always emitted | Lowering + verifier |
@@ -112,7 +112,7 @@
 ### Maintainer gate
 `maintainer: true` (allowed only at the top level of a job's `if: all:`) becomes a **generated first step**:
 - It calls `GET /repos/{repo}/collaborators/{triggering_actor}/permission`.
-- It reads `role_name` (not the legacy `permission` field) and **allows only `admin`, `maintain` or `write`**, plus custom role names the spec lists explicitly. Any status other than 200, a bot or app actor, or a mismatch between `actor` and `triggering_actor` counts as a deny.
+- It reads `role_name` (not the legacy `permission` field) and **allows only `admin`, `maintain` or `write`**, plus custom role names the spec lists explicitly: `maintainer: { custom_roles: [release-manager] }`, matched exactly; `read` and `triage` are refused. Any status other than 200, a bot or app actor, or a mismatch between `actor` and `triggering_actor` counts as a deny.
 - When the event carries content (a comment, review, issue, pull request or discussion) it also requires that content to be **new** (`created`, `opened` or `submitted`) and written by the triggering user, and a gated job must declare that one activity type on such triggers (PF316). Otherwise editing or deleting someone else's command, or labelling someone else's issue, would run it with the maintainer's authority.
 - It sets `outputs.ok`. Every later step has `if: steps.pinfold_gate.outputs.ok == 'true'`, so a non-maintainer gets a **neutral skip, not a red X**.
 

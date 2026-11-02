@@ -157,7 +157,7 @@
               }
             },
             "issues": {
-              "description": "Privileged: issue activity (opened, labeled, \u2026).",
+              "description": "Privileged: issue activity (opened, labeled, \u2026). A gated job needs types: [opened] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -179,7 +179,7 @@
               }
             },
             "pull_request_target": {
-              "description": "Privileged, metadata only: labels and comments on pull requests, no checkout. Warns PF311: GitHub blocks this trigger by default in public repositories from 2026-12-02.",
+              "description": "Privileged, metadata only: labels and comments on pull requests, no checkout. Warns PF311: GitHub blocks this trigger by default in public repositories from 2026-12-02. A gated job needs types: [opened] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -213,7 +213,7 @@
               }
             },
             "pull_request_review": {
-              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout.",
+              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout. A gated job needs types: [submitted] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -235,7 +235,7 @@
               }
             },
             "pull_request_review_comment": {
-              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout.",
+              "description": "Privileged, metadata only (like pull_request_target): GITHUB_SHA is the PR's merge commit, so no checkout. A gated job needs types: [created] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -257,7 +257,7 @@
               }
             },
             "discussion": {
-              "description": "Privileged: discussion activity.",
+              "description": "Privileged: discussion activity. A gated job needs types: [created] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -279,7 +279,7 @@
               }
             },
             "discussion_comment": {
-              "description": "Privileged: a comment on a discussion.",
+              "description": "Privileged: a comment on a discussion. A gated job needs types: [created] (PF316).",
               "type": [
                 "object",
                 "null"
@@ -1257,8 +1257,40 @@
           }
         },
         "maintainer": {
-          "description": "Require write, maintain or admin access for the triggering user, checked by a generated first step. Only at the top level of the job's if: all:. Non-maintainers get a neutral skip.",
-          "const": true
+          "description": "Require write, maintain or admin access for the triggering user, checked by a generated first step. Only at the top level of the job's if: all:. Non-maintainers get a neutral skip. Write { custom_roles: [name] } to also allow custom repository roles, matched by exact role_name.",
+          "oneOf": [
+            {
+              "const": true
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "custom_roles"
+              ],
+              "properties": {
+                "custom_roles": {
+                  "description": "Custom repository role names allowed besides admin, maintain and write, matched exactly against role_name. read and triage are refused.",
+                  "type": "array",
+                  "minItems": 1,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$",
+                    "not": {
+                      "enum": [
+                        "read",
+                        "triage",
+                        "admin",
+                        "maintain",
+                        "write"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ]
         },
         "all": {
           "description": "All of these conditions.",

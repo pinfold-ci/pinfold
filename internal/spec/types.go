@@ -160,4 +160,5 @@ type Condition struct {
 	Kind   string   // the leaf condition's key, e.g. "event" or "maintainer"
 	Values []string // event, branch, tag, label, association, actor, status, comment.starts_with
 	Flag   bool     // maintainer
+	Roles  []string // maintainer: custom role names allowed besides admin, maintain and write
 }

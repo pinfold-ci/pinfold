@@ -92,3 +92,9 @@ func hasMaintainer(c *ir.Condition) bool {
 	}
 	return false
 }
+
+// gateRoles returns the JSON role list for the gate's PINFOLD_ROLES, or ""
+// when the job lists no custom roles and the gate's default applies (#56).
+func gateRoles(c *ir.Condition) string {
+	return ir.GateRolesJSON(c)
+}

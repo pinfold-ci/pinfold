@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -122,7 +123,7 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 			v.bindings(job, j.Name)
 		}
 		if hasMaintainer(j.If) {
-			v.gate(job, j.Name)
+			v.gate(job, j.Name, j.If)
 		}
 	}
 	for name := range want {
@@ -529,7 +530,7 @@ func (v *verifier) caches(job *yaml.Node, name string, zone ir.Zone) {
 
 // gate checks that a job with a maintainer condition starts with the generated
 // gate step and that every later step only runs when the gate passed.
-func (v *verifier) gate(job *yaml.Node, name string) {
+func (v *verifier) gate(job *yaml.Node, name string, cond *ir.Condition) {
 	steps := get(job, "steps")
 	if steps == nil || len(steps.Content) == 0 {
 		v.report("PF907", job, "job %q needs a maintainer gate but has no steps", name)
@@ -551,8 +552,12 @@ func (v *verifier) gate(job *yaml.Node, name string) {
 			got[env.Content[i].Value] = env.Content[i+1].Value
 		}
 	}
-	if fmt.Sprint(got) != fmt.Sprint(gateEnv) {
-		v.report("PF907", first, "job %q's maintainer gate env is %v, want exactly %v", name, got, gateEnv)
+	want := maps.Clone(gateEnv)
+	if roles := ir.GateRolesJSON(cond); roles != "" {
+		want["PINFOLD_ROLES"] = roles // the spec's custom roles (#56), nothing else
+	}
+	if fmt.Sprint(got) != fmt.Sprint(want) {
+		v.report("PF907", first, "job %q's maintainer gate env is %v, want exactly %v", name, got, want)
 	}
 	for _, s := range steps.Content[1:] {
 		if cond := get(s, "if"); cond == nil || cond.Value != gateCondition {

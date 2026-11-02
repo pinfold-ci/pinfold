@@ -90,3 +90,36 @@ func TestWriteRefusesSymlinks(t *testing.T) {
 		}
 	})
 }
+
+// TestStoredSpecName (#64): the header names the spec as the directory stores
+// it, whatever spelling opened it.
+func TestStoredSpecName(t *testing.T) {
+	entries := []string{"README.md", "pinfold.yml", "spéc.yml"}
+	isPinfold := func(e string) bool { return e == "pinfold.yml" }
+	isSpec := func(e string) bool { return e == "spéc.yml" }
+	tests := []struct {
+		typed string
+		same  func(string) bool
+		want  string
+	}{
+		{"pinfold.yml", isPinfold, "pinfold.yml"},
+		{"PINFOLD.yml", isPinfold, "pinfold.yml"}, // case-insensitive file system
+		{"spéc.yml", isSpec, "spéc.yml"},         // NFC typed, NFD stored
+		{"other.yml", func(string) bool { return false }, "other.yml"},
+		{"x.yml", func(string) bool { return true }, "x.yml"}, // ambiguous: keep what was typed
+	}
+	for _, tt := range tests {
+		if got := storedName(tt.typed, entries, tt.same); got != tt.want {
+			t.Errorf("storedName(%q) = %q, want %q", tt.typed, got, tt.want)
+		}
+	}
+	// On disk: the typed path is used when it is the stored name.
+	dir := t.TempDir()
+	p := filepath.Join(dir, "pinfold.yml")
+	if err := os.WriteFile(p, []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if got := specName(filepath.Join(dir, ".", "pinfold.yml")); got != "pinfold.yml" {
+		t.Errorf("specName = %q", got)
+	}
+}

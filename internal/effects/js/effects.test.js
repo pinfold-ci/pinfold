@@ -158,6 +158,16 @@ test('maintainer gate: allows only admin, maintain and write, by role_name', asy
   }
 });
 
+// #56: the spec may list custom repository roles; the compiler passes the
+// full list as PINFOLD_ROLES and the gate matches role_name exactly.
+test('maintainer gate: custom roles from the spec', async () => {
+  const env = { T_ACTOR: 'octo', T_TRIGGERING_ACTOR: 'octo', PINFOLD_ROLES: '["admin","maintain","write","release-manager"]' };
+  for (const [role, want] of [['release-manager', 'true'], ['Release-Manager', 'false'], ['write', 'true'], ['read', 'false']]) {
+    const { outputs } = await run('maintainer_gate', env, { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: role } }) });
+    assert.strictEqual(outputs.ok, want, role);
+  }
+});
+
 test('maintainer gate: fails closed', async () => {
   const api = { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: 'admin' } }) };
   // A re-run by someone else.

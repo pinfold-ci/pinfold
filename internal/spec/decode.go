@@ -760,7 +760,9 @@ func (d *decoder) condition(n *yaml.Node, top bool) *Condition {
 			}
 		}
 	case "maintainer":
-		if b, ok := d.boolean(v, "maintainer"); ok && !b {
+		if v.Kind == yaml.MappingNode {
+			c.Roles = d.customRoles(v)
+		} else if b, ok := d.boolean(v, "maintainer"); ok && !b {
 			d.report("PF113", v, "remove the condition instead", "maintainer can only be true")
 		}
 		c.Flag = true
@@ -771,6 +773,43 @@ func (d *decoder) condition(n *yaml.Node, top bool) *Condition {
 		d.report("PF125", k, suggest(k.Value, conditionKeys), "unknown condition %q", k.Value)
 	}
 	return c
+}
+
+// GateRoles are the repository roles the maintainer gate always allows (design §4).
+var GateRoles = []string{"admin", "maintain", "write"}
+
+var roleNameRE = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9 ._-]{0,99}$`)
+
+// customRoles decodes maintainer: { custom_roles: [...] } (#56). The gate
+// matches role_name exactly, so names are checked for shape only; read and
+// triage are refused because nearly anyone can hold them.
+func (d *decoder) customRoles(n *yaml.Node) []string {
+	var out []string
+	for _, f := range d.fields(n, "maintainer", []string{"custom_roles"}, []string{"custom_roles"}, "PF110") {
+		if !d.isKind(f.val, yaml.SequenceNode, "custom_roles") {
+			continue
+		}
+		if len(f.val.Content) == 0 {
+			d.report("PF111", f.val, "write maintainer: true instead", "custom_roles must list at least one role")
+		}
+		for _, item := range f.val.Content {
+			r, ok := d.str(item, "a custom role")
+			switch {
+			case !ok:
+			case strings.EqualFold(r, "read") || strings.EqualFold(r, "triage"):
+				d.report("PF113", item, "list only custom roles meant to approve; admin, maintain and write are always allowed", "role %q can't pass the maintainer gate: anyone with that access could", r)
+			case slices.ContainsFunc(GateRoles, func(g string) bool { return strings.EqualFold(g, r) }):
+				d.report("PF113", item, "remove it", "role %q is always allowed", r)
+			case !roleNameRE.MatchString(r):
+				d.report("PF113", item, "use the role's name as shown in the organisation's repository roles", "invalid role name %q", r)
+			case slices.Contains(out, r):
+				d.report("PF113", item, "remove the duplicate", "role %q is listed twice", r)
+			default:
+				out = append(out, r)
+			}
+		}
+	}
+	return out
 }
 
 // itemAt returns the i-th entry of a list node, or the node itself for a scalar shorthand.
