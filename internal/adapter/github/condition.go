@@ -27,7 +27,12 @@ func condition(c *ir.Condition) string {
 	case "event":
 		return anyOf(c.Values, func(v string) string { return "github.event_name == " + lit(eventName(v)) })
 	case "branch":
-		return anyOf(c.Values, func(v string) string { return "(github.base_ref || github.ref_name) == " + lit(v) })
+		// The pull request's base branch, or a pushed (or manually chosen)
+		// branch. The refs/heads/ guard keeps a tag of the same name from
+		// matching (external audit).
+		return anyOf(c.Values, func(v string) string {
+			return "github.base_ref == " + lit(v) + " || (github.base_ref == '' && startsWith(github.ref, 'refs/heads/') && github.ref_name == " + lit(v) + ")"
+		})
 	case "tag":
 		return anyOf(c.Values, func(v string) string {
 			return "(startsWith(github.ref, 'refs/tags/') && github.ref_name == " + lit(v) + ")"

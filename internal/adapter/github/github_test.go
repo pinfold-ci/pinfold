@@ -188,6 +188,16 @@ func TestConditionQuoting(t *testing.T) {
 	}
 }
 
+// TestBranchConditionGuard: a tag named like the branch must not match, and a
+// pull request matches on its base branch (external audit).
+func TestBranchConditionGuard(t *testing.T) {
+	got := condition(&ir.Condition{Kind: "branch", Values: []string{"production"}})
+	want := "github.base_ref == 'production' || (github.base_ref == '' && startsWith(github.ref, 'refs/heads/') && github.ref_name == 'production')"
+	if got != want {
+		t.Errorf("condition = %s, want %s", got, want)
+	}
+}
+
 // TestActionlint runs actionlint on the goldens when ACTIONLINT names a binary
 // (CI also lints them directly).
 func TestActionlint(t *testing.T) {

@@ -175,6 +175,30 @@ test('maintainer gate: comment events need a new comment by the actor', async ()
   assert.strictEqual((await run('maintainer_gate', env, api, [], { sender: { type: 'User' }, action: 'created', comment: {} })).outputs.ok, 'false', 'no author');
 });
 
+// #64: the same holds for issues, pull requests, reviews and discussions: a
+// maintainer labelling or reopening someone else's issue must not pass.
+test('maintainer gate: other content events need new content by the actor', async () => {
+  const api = { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: 'admin' } }) };
+  const env = { T_ACTOR: 'octo', T_TRIGGERING_ACTOR: 'octo' };
+  const ev = (key, action, author, extra = {}) => ({ sender: { type: 'User' }, action, [key]: { user: { login: author } }, ...extra });
+  const ok = async (p) => (await run('maintainer_gate', env, api, [], p)).outputs.ok;
+  assert.strictEqual(await ok(ev('issue', 'opened', 'octo')), 'true', 'new issue');
+  assert.strictEqual(await ok(ev('issue', 'labeled', 'mallory')), 'false', 'label on someone else\'s issue');
+  assert.strictEqual(await ok(ev('issue', 'labeled', 'octo')), 'false', 'labeled, own issue');
+  assert.strictEqual(await ok(ev('pull_request', 'opened', 'octo')), 'true', 'new pull request');
+  assert.strictEqual(await ok(ev('pull_request', 'reopened', 'mallory')), 'false', 'reopened');
+  assert.strictEqual(await ok(ev('pull_request', 'opened', 'mallory')), 'false', 'someone else\'s pull request');
+  assert.strictEqual(await ok(ev('review', 'submitted', 'octo', { pull_request: { user: { login: 'mallory' } } })), 'true', 'own review on another PR');
+  assert.strictEqual(await ok(ev('review', 'edited', 'octo')), 'false', 'edited review');
+  assert.strictEqual(await ok(ev('discussion', 'created', 'octo')), 'true', 'new discussion');
+  assert.strictEqual(await ok(ev('discussion', 'edited', 'mallory')), 'false', 'edited discussion');
+  // A comment event also carries the issue: the comment decides.
+  assert.strictEqual(await ok(ev('comment', 'created', 'octo', { issue: { user: { login: 'mallory' } } })), 'true', 'own comment on someone else\'s issue');
+  assert.strictEqual(await ok(ev('comment', 'created', 'mallory', { issue: { user: { login: 'octo' } } })), 'false', 'someone else\'s comment on own issue');
+  // push, schedule and manual runs carry none of these.
+  assert.strictEqual(await ok({ sender: { type: 'User' } }), 'true', 'push');
+});
+
 test('maintainer gate: looks up the triggering actor', async () => {
   const { calls } = await run('maintainer_gate', { T_ACTOR: 'octo', T_TRIGGERING_ACTOR: 'octo' },
     { getCollaboratorPermissionLevel: () => ({ status: 200, data: { role_name: 'write' } }) });

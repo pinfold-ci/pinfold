@@ -1,0 +1,11 @@
+version: 0
+workflows:
+  triage:
+    on: { issue_comment: { types: [created] } }
+    jobs:
+      greet:
+        runner: ubuntu-24.04
+        if: { branch: main }
+        permissions: { issues: write }
+        steps:
+          - { effect: comment, target: { context: issue.number }, body: "Thanks!" }

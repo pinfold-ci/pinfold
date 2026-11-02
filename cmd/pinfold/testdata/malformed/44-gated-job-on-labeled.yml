@@ -1,0 +1,11 @@
+version: 0
+workflows:
+  triage:
+    on: { issues: { types: [labeled] } }
+    jobs:
+      ack:
+        runner: ubuntu-24.04
+        if: { all: [ { maintainer: true }, { label: accepted } ] }
+        permissions: { issues: write }
+        steps:
+          - { effect: comment, target: { context: issue.number }, body: "Accepted: {{ issue.title }}" }

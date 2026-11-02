@@ -56,20 +56,39 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 	for _, j := range w.Jobs {
 		gated[j.Name] = maintainerGated(j.If)
 	}
-	// A gated job on a comment trigger must run only for new comments: the
-	// gate checks the user who acted, and an edit or deletion of someone
-	// else's comment would pass their text to the job (#64).
+	// The gate checks the user who triggered the run, so a gated job must run
+	// only for activity types where that user also wrote the content: a new
+	// comment, a newly opened issue. An edit, a deletion or a label added by a
+	// maintainer would pass someone else's text to the job (#64).
 	for _, t := range w.On {
-		if !slices.Contains(commentEvents, t.Event) || slices.Equal(t.Types, []string{"created"}) {
+		want, ok := gatedTypes[t.Event]
+		if !ok || slices.Equal(t.Types, []string{want}) {
 			continue
 		}
 		for _, j := range w.Jobs {
 			if gated[j.Name] {
-				c.add("PF316", t.Span, "add types: [created] to the trigger",
-					"job %q is behind the maintainer gate, but %s runs it for %s, not only for new comments", j.Name, t.Event, typesWhat(t.Types))
+				c.add("PF316", t.Span, fmt.Sprintf("add types: [%s] to the trigger", want),
+					"job %q is behind the maintainer gate, but %s runs it for %s, not only for content the triggering user just wrote (types: [%s])", j.Name, t.Event, typesWhat(t.Types), want)
 				break
 			}
 		}
+	}
+	// A branch condition on an event that carries no branch would be always
+	// true (comment and issue events run on the default branch) or never true
+	// (review events run on the PR's merge ref), so it can't mean what it says.
+	for _, j := range w.Jobs {
+		forEachLeaf(j.If, func(cd *spec.Condition) {
+			if cd.Kind != "branch" {
+				return
+			}
+			for _, t := range w.On {
+				if !slices.Contains(branchEvents, t.Event) {
+					c.add("PF317", cd.Span, "branch: works only on push, pull_request_target and manual; remove it, or move the job to a workflow on one of those",
+						"job %q has a branch condition, but %s events have no branch to match", j.Name, t.Event)
+					return
+				}
+			}
+		})
 	}
 	for _, j := range w.Jobs {
 		for _, n := range j.Needs {
@@ -309,13 +328,40 @@ func zoneWhat(z ir.Zone) string {
 	return "feeds a privileged job"
 }
 
-// commentEvents carry a comment written by someone who may not be the user
-// that triggered the run (an edit or a deletion).
-var commentEvents = []string{"issue_comment", "pull_request_review_comment", "discussion_comment"}
+// gatedTypes is, for each event whose content another user may have written,
+// the one activity type where the triggering user is the author (#64). The
+// generated gate checks the same at run time. Other events (push, schedule,
+// manual) carry no such content.
+var gatedTypes = map[string]string{
+	"issue_comment":               "created",
+	"pull_request_review_comment": "created",
+	"discussion_comment":          "created",
+	"discussion":                  "created",
+	"issues":                      "opened",
+	"pull_request_target":         "opened",
+	"pull_request_review":         "submitted",
+}
+
+// branchEvents are the triggers whose run has a branch a branch condition can
+// match: the pushed branch, the pull request's base, or the branch chosen for
+// a manual run.
+var branchEvents = []string{"push", "pull_request_target", "manual"}
+
+func forEachLeaf(c *spec.Condition, f func(*spec.Condition)) {
+	if c == nil {
+		return
+	}
+	for _, s := range append(append([]*spec.Condition{}, c.All...), c.Any...) {
+		forEachLeaf(s, f)
+	}
+	if c.Kind != "all" && c.Kind != "any" {
+		f(c)
+	}
+}
 
 func typesWhat(types []string) string {
 	if len(types) == 0 {
-		return "every activity type (created, edited and deleted)"
+		return "every activity type"
 	}
 	return "types " + strings.Join(types, ", ")
 }
