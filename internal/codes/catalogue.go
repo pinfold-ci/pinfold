@@ -54,6 +54,7 @@ var catalogue = map[string]Entry{
 	"PF314": {Severity: diag.Error, Title: "Job depends on a gated job without its own gate"},
 	"PF316": {Severity: diag.Error, Title: "Gated job runs for content the triggering user didn't write"},
 	"PF317": {Severity: diag.Error, Title: "Branch condition on an event without a branch"},
+	"PF322": {Severity: diag.Warning, Title: "actor: condition on a job that holds credentials"},
 	"PF318": {Severity: diag.Error, Title: "OIDC job without an environment"},
 	"PF315": {Severity: diag.Error, Title: "Feeder or privileged job on a runner that may not be fresh"},
 	"PF906": {Severity: diag.Error, Title: "Internal error: unrecognised script in a privileged job"},

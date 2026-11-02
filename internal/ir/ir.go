@@ -3,6 +3,7 @@
 package ir
 
 import (
+	"encoding/json"
 	"slices"
 
 	"github.com/pinfold-ci/pinfold/internal/diag"
@@ -124,4 +125,32 @@ var GitHubHostedRunners = []string{
 // ephemeral.
 func FreshRunner(j *Job) bool {
 	return j.EphemeralRunner || slices.Contains(GitHubHostedRunners, j.Runner)
+}
+
+// GateRolesJSON returns the role list the maintainer gate of a job with
+// condition c receives as PINFOLD_ROLES: the default roles plus the custom
+// roles the spec lists (#56). It is "" when there are none, so the gate uses
+// its built-in default. The adapter and the verifier both use it.
+func GateRolesJSON(c *Condition) string {
+	roles := customRoles(c)
+	if len(roles) == 0 {
+		return ""
+	}
+	b, _ := json.Marshal(append(slices.Clone(spec.GateRoles), roles...))
+	return string(b)
+}
+
+func customRoles(c *Condition) []string {
+	if c == nil {
+		return nil
+	}
+	if c.Kind == "maintainer" {
+		return c.Roles
+	}
+	for _, s := range append(append([]*Condition{}, c.All...), c.Any...) {
+		if r := customRoles(s); r != nil {
+			return r
+		}
+	}
+	return nil
 }

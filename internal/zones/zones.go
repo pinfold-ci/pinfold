@@ -73,6 +73,20 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 			}
 		}
 	}
+	// actor: names a login, which can be renamed and then taken by someone
+	// else, and doesn't check the user still has access; on a privileged job
+	// the maintainer gate is the reliable check (design §5).
+	for ji, j := range w.Jobs {
+		if iw.Jobs[ji].Zone != ir.ZonePrivileged {
+			continue
+		}
+		forEachLeaf(j.If, func(cd *spec.Condition) {
+			if cd.Kind == "actor" {
+				c.add("PF322", cd.Span, "use { maintainer: true } (with custom_roles if needed) instead",
+					"job %q holds credentials and checks actor:, which only compares a login name", j.Name)
+			}
+		})
+	}
 	// A branch condition on an event that carries no branch would be always
 	// true (comment and issue events run on the default branch) or never true
 	// (review events run on the PR's merge ref), so it can't mean what it says.
