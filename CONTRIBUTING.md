@@ -1,6 +1,8 @@
 # Contributing to Pinfold
 
-Thanks for your interest. Pinfold is pre-alpha: the core (spec, IR, trust zones, taint, lock) is still changing quickly, so for now the most useful contributions are **issues, design feedback and incident fixtures**. Smaller self-contained tasks will be labelled `good first issue` from milestone M3.
+Thanks for your interest. Pinfold is pre-alpha: the spec language and the guarantees are settling, and the lock (milestone M4) is still being built. Useful contributions now: **issues, design feedback, incident fixtures, registry entries and docs**. Self-contained tasks are labelled [`good first issue`](https://github.com/pinfold-ci/pinfold/labels/good%20first%20issue).
+
+Questions go to [Discussions](SUPPORT.md); labels are explained in [docs/labels.md](docs/labels.md); versioning and releases in [docs/releases.md](docs/releases.md). Maintainers are listed in [MAINTAINERS.md](MAINTAINERS.md).
 
 ## Development setup
 
@@ -20,7 +22,7 @@ Golden files live next to the tests in `testdata/`. To regenerate them after an 
 - **Tests first.** Every behaviour change comes with a test that fails without it. Security rules (zones, taint, permissions, verifier, lock) need a test that *tries to break* the rule.
 - **Conventional commits:** `feat:`, `fix:`, `test:`, `docs:`, `ci:`, `chore:`, `refactor:`.
 - **CI must be green.** `main` is protected; nothing is pushed to it directly.
-- **Core changes** (taint, zones, verifier, lock, sanitiser) need an RFC in GitHub Discussions first.
+- **Core changes** (taint, zones, verifier, lock, sanitiser) need an [RFC in GitHub Discussions](https://github.com/pinfold-ci/pinfold/discussions/categories/rfcs) first.
 
 ## Developer Certificate of Origin
 

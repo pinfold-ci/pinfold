@@ -1,0 +1,23 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tip: every diagnostic has a page. `pinfold explain PF301` prints it, and `pinfold explain` lists them all.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec and output
+      description: The relevant part of your pinfold.yml and the command's output, if any.
+      render: yaml
+  - type: input
+    id: version
+    attributes:
+      label: Pinfold version
+      description: Output of `pinfold version`.
