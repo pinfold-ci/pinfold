@@ -555,6 +555,19 @@
             "$ref": "#/$defs/step"
           }
         },
+        "outputs": {
+          "description": "Output names other jobs may read as { output: job.name }. A step sets one by writing name=value to $GITHUB_OUTPUT, or an action sets it; the last step that sets it wins. Always tainted when read.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{0,62}$",
+            "not": {
+              "pattern": "^pinfold"
+            }
+          }
+        },
         "produces": {
           "description": "Artifacts this job uploads: name \u2192 path, e.g. { dist: dist/ }. Pinfold generates the upload and records the sha256 digest.",
           "type": "object",

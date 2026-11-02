@@ -26,6 +26,7 @@ var catalogue = map[string]Entry{
 	"PF127": {Severity: diag.Error, Title: "Artifact consumed from a job that isn't a dependency"},
 	"PF128": {Severity: diag.Error, Title: "Artifact not produced by that job"},
 	"PF129": {Severity: diag.Error, Title: "Checkout after artifact downloads"},
+	"PF131": {Severity: diag.Error, Title: "Output not declared, or from a job that isn't a dependency"},
 	"PF130": {Severity: diag.Error, Title: "Invalid permission"},
 	"PF201": {Severity: diag.Error, Title: "`${{` isn't allowed in the spec"},
 	"PF901": {Severity: diag.Error, Title: "Internal error: workflow permissions aren't empty"},

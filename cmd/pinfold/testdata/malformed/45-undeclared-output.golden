@@ -1,0 +1,2 @@
+testdata/malformed/45-undeclared-output.yml:16:28: error PF131: job "publish" reads output "tag", but job "version" doesn't declare it
+    hint: add outputs: [tag] to job "version", and have a step write tag=... to $GITHUB_OUTPUT

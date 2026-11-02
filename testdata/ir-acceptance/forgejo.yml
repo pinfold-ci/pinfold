@@ -61,6 +61,9 @@ constructs:
   job.produces:
     maps: unverified
     question: "Assumed to map directly; confirm."
+  job.outputs:
+    maps: unverified
+    question: "Can a job pass a small named value (output) to a later job, as GitHub needs.<job>.outputs does? Confirm the size limit and how a step sets it."
   job.consumes:
     maps: unverified
     question: "Assumed to map directly; confirm."

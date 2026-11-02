@@ -45,6 +45,7 @@ type Job struct {
 	Steps           []*Step
 	Produces        []Artifact
 	Consumes        []Consume
+	Outputs         []Ref // names other jobs may read as { output: job.name }
 }
 
 // Ref is a reference to another job, with the position of the reference.

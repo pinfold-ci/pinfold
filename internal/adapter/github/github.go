@@ -125,8 +125,19 @@ func job(w *ir.Workflow, j *ir.Job) emit.Map {
 			{Key: "cancel-in-progress", Value: emit.Bool(j.Concurrency.CancelInProgress)},
 		}})
 	}
-	if len(j.Produces) > 0 {
+	if len(j.Produces) > 0 || len(j.Outputs) > 0 {
 		outs := emit.Map{}
+		// A declared output is whatever the last user step that set it wrote.
+		steps := outputSteps(j)
+		for _, name := range j.Outputs {
+			var refs []string
+			for i := len(steps) - 1; i >= 0; i-- {
+				refs = append(refs, "steps."+outputStepID(steps[i])+".outputs."+name)
+			}
+			if len(refs) > 0 {
+				outs = append(outs, emit.Pair{Key: name, Value: emit.Str("${{ " + strings.Join(refs, " || ") + " }}")})
+			}
+		}
 		for _, a := range j.Produces {
 			for _, f := range []string{"id", "digest"} {
 				outs = append(outs, emit.Pair{Key: "pinfold_" + a.Name + "_" + f, Value: emit.Str("${{ steps.pinfold_upload_" + a.Name + ".outputs.artifact-" + f + " }}")})
@@ -138,16 +149,86 @@ func job(w *ir.Workflow, j *ir.Job) emit.Map {
 	return m
 }
 
-// jobNeeds returns the declared needs plus every job this one consumes from:
-// GitHub's needs context only covers direct dependencies.
+// jobNeeds returns the declared needs plus every job this one consumes from
+// or reads an output of: GitHub's needs context only covers direct dependencies.
 func jobNeeds(j *ir.Job) []string {
 	needs := slices.Clone(j.Needs)
+	add := func(name string) {
+		if !slices.Contains(needs, name) {
+			needs = append(needs, name)
+		}
+	}
 	for _, c := range j.Consumes {
-		if !slices.Contains(needs, c.From.Name) {
-			needs = append(needs, c.From.Name)
+		add(c.From.Name)
+	}
+	for _, s := range j.Steps {
+		for _, v := range stepValues(s) {
+			if v.Kind == spec.Output {
+				src, _, _ := strings.Cut(v.Text, ".")
+				add(src)
+			}
 		}
 	}
 	return needs
+}
+
+// stepValues lists a step's typed values in a fixed order.
+func stepValues(s *ir.Step) []ir.Value {
+	var out []ir.Value
+	for _, m := range []map[string]ir.Value{s.Env, s.With} {
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			out = append(out, m[k])
+		}
+	}
+	if e := s.Effect; e != nil {
+		for _, v := range []*ir.Value{e.Target, e.SHA, e.Tag} {
+			if v != nil {
+				out = append(out, *v)
+			}
+		}
+	}
+	return out
+}
+
+// outputStepID is the id a user step gets in a job that declares outputs.
+func outputStepID(s *ir.Step) string {
+	return "pinfold_step_" + s.ID[strings.LastIndex(s.ID, "-")+1:]
+}
+
+// outputSteps are the user steps that may set a declared output.
+func outputSteps(j *ir.Job) []*ir.Step {
+	if len(j.Outputs) == 0 {
+		return nil
+	}
+	var out []*ir.Step
+	for _, s := range j.Steps {
+		if s.Kind == ir.Run || s.Kind == ir.Uses {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// withOutputID gives a user step an id when its job declares outputs, so the
+// job's outputs can read what it writes to $GITHUB_OUTPUT.
+func withOutputID(j *ir.Job, s *ir.Step, m emit.Map) emit.Map {
+	if !slices.Contains(outputSteps(j), s) || get(m, "id") {
+		return m
+	}
+	id := emit.Pair{Key: "id", Value: emit.Str(outputStepID(s))}
+	if len(m) > 0 && m[0].Key == "name" {
+		return append(emit.Map{m[0], id}, m[1:]...)
+	}
+	return append(emit.Map{id}, m...)
+}
+
+func get(m emit.Map, key string) bool {
+	return slices.ContainsFunc(m, func(p emit.Pair) bool { return p.Key == key })
 }
 
 // permissions maps capabilities back to scopes; an empty set is {}. Each scope
@@ -230,7 +311,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 		}))
 	}
 	for _, s := range rest {
-		out = append(out, guard(gated, step(w, j, s)))
+		out = append(out, guard(gated, withOutputID(j, s, step(w, j, s))))
 	}
 	for _, a := range j.Produces {
 		up := generatedActions["upload"]

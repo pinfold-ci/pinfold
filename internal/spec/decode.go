@@ -334,6 +334,8 @@ func (d *decoder) job(k, v *yaml.Node) *Job {
 			j.Produces = d.produces(f.val)
 		case "consumes":
 			j.Consumes = d.consumes(f.val)
+		case "outputs":
+			j.Outputs = d.outputs(f.val)
 		}
 	}
 	return j
@@ -409,6 +411,30 @@ func (d *decoder) consumes(n *yaml.Node) []Consume {
 			}
 		}
 		out = append(out, c)
+	}
+	return out
+}
+
+// outputNameRE is a job output name: the part after the dot in { output: job.name }.
+var outputNameRE = regexp.MustCompile(`^[a-z][a-z0-9_-]{0,62}$`)
+
+// outputs decodes a job's declared output names. A step sets one by writing
+// name=value to $GITHUB_OUTPUT (or an action sets it); the pinfold_ prefix is
+// reserved for the generated artifact id and digest outputs.
+func (d *decoder) outputs(n *yaml.Node) []Ref {
+	var out []Ref
+	for i, name := range d.strList(n, "outputs", false) {
+		item := itemAt(n, i)
+		switch {
+		case !outputNameRE.MatchString(name):
+			d.report("PF114", item, "use lowercase letters, digits, underscores and hyphens, starting with a letter (e.g. version)", "invalid output name %q", name)
+		case strings.HasPrefix(name, "pinfold"):
+			d.report("PF114", item, "choose another name", "output names starting with pinfold are reserved (%q)", name)
+		case slices.ContainsFunc(out, func(r Ref) bool { return r.Name == name }):
+			d.report("PF113", item, "remove the duplicate", "output %q is listed twice", name)
+		default:
+			out = append(out, Ref{name, d.span(item)})
+		}
 	}
 	return out
 }

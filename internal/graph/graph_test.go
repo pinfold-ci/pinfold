@@ -75,3 +75,23 @@ func TestDiagnostics(t *testing.T) {
 		}
 	}
 }
+
+// TestOutputs: { output: job.name } must name a declared output of a job this
+// one depends on; otherwise it would always be empty (PF131).
+func TestOutputs(t *testing.T) {
+	tests := []struct{ name, jobs, want string }{
+		{"declared, direct", "      a: { runner: x, outputs: [v], steps: [{run: a}] }\n      b: { runner: x, needs: [a], steps: [{run: a, env: {T_V: {output: a.v}}}] }\n", ""},
+		{"declared, transitive", "      a: { runner: x, outputs: [v], steps: [{run: a}] }\n      m: { runner: x, needs: [a], steps: [{run: a}] }\n      b: { runner: x, needs: [m], steps: [{run: a, env: {T_V: {output: a.v}}}] }\n", ""},
+		{"undeclared", "      a: { runner: x, steps: [{run: a}] }\n      b: { runner: x, needs: [a], steps: [{run: a, env: {T_V: {output: a.v}}}] }\n", "PF131@7:72"},
+		{"not a dependency", "      a: { runner: x, outputs: [v], steps: [{run: a}] }\n      b: { runner: x, steps: [{run: a, env: {T_V: {output: a.v}}}] }\n", "PF131@7:60"},
+		{"unknown job", "      b: { runner: x, steps: [{run: a, env: {T_V: {output: z.v}}}] }\n", "PF131@6:60"},
+		{"nothing to set it", "      a: { runner: x, outputs: [v], steps: [{checkout: {}}] }\n", "PF131@6:33"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, got := check(t, tt.jobs); strings.Join(got, " ") != tt.want {
+				t.Errorf("diagnostics = %v, want %q", got, tt.want)
+			}
+		})
+	}
+}

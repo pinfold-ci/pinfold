@@ -1,0 +1,16 @@
+version: 0
+workflows:
+  release:
+    on: { push: { tags: ["v*"] } }
+    jobs:
+      version:
+        runner: ubuntu-24.04
+        steps:
+          - run: echo "tag=v1" >> "$GITHUB_OUTPUT"
+      publish:
+        runner: ubuntu-24.04
+        needs: [version]
+        permissions: { contents: write }
+        steps:
+          - effect: release
+            tag: { output: version.tag }

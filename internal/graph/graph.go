@@ -23,6 +23,7 @@ func Check(s *spec.Spec) (map[string][]string, diag.List) {
 		if ok {
 			orders[w.Name] = order
 			checkConsumes(w, &diags)
+			checkOutputs(w, &diags)
 		}
 	}
 	diags.Sort()
@@ -107,4 +108,74 @@ func checkConsumes(w *spec.Workflow, diags *diag.List) {
 			}
 		}
 	}
+}
+
+// checkOutputs reports { output: job.name } values that name a job this one
+// doesn't depend on, or an output that job doesn't declare (PF131). Without
+// the check the reference would compile to an always-empty value.
+func checkOutputs(w *spec.Workflow, diags *diag.List) {
+	jobs := map[string]*spec.Job{}
+	for _, j := range w.Jobs {
+		jobs[j.Name] = j
+	}
+	var deps func(name string, seen map[string]bool)
+	deps = func(name string, seen map[string]bool) {
+		for _, n := range jobs[name].Needs {
+			if jobs[n.Name] != nil && !seen[n.Name] {
+				seen[n.Name] = true
+				deps(n.Name, seen)
+			}
+		}
+	}
+	for _, j := range w.Jobs {
+		if len(j.Outputs) > 0 && !slices.ContainsFunc(j.Steps, func(s *spec.Step) bool { return s.Kind == spec.StepRun || s.Kind == spec.StepUses }) {
+			diags.Add(codes.New("PF131", j.Outputs[0].Span, fmt.Sprintf("job %q declares outputs but has no run: or uses: step to set them", j.Name), "remove outputs:, or add the step that writes them"))
+		}
+		upstream := map[string]bool{}
+		deps(j.Name, upstream)
+		for _, v := range outputRefs(j) {
+			src, name, _ := strings.Cut(v.Text, ".")
+			switch from := jobs[src]; {
+			case from == nil:
+				diags.Add(codes.New("PF131", v.Span, fmt.Sprintf("job %q reads output %q of unknown job %q", j.Name, name, src), ""))
+			case !upstream[src]:
+				diags.Add(codes.New("PF131", v.Span, fmt.Sprintf("job %q reads output %q of job %q, which it doesn't depend on", j.Name, name, src), fmt.Sprintf("add %q to the needs of job %q", src, j.Name)))
+			case !slices.ContainsFunc(from.Outputs, func(r spec.Ref) bool { return r.Name == name }):
+				diags.Add(codes.New("PF131", v.Span, fmt.Sprintf("job %q reads output %q, but job %q doesn't declare it", j.Name, name, src), fmt.Sprintf("add outputs: [%s] to job %q, and have a step write %s=... to $GITHUB_OUTPUT", name, src, name)))
+			}
+		}
+	}
+}
+
+// outputRefs returns every { output: ... } value in a job's steps.
+func outputRefs(j *spec.Job) []spec.Value {
+	var out []spec.Value
+	add := func(v *spec.Value) {
+		if v != nil && v.Kind == spec.Output {
+			out = append(out, *v)
+		}
+	}
+	for _, st := range j.Steps {
+		for _, m := range []map[string]spec.Value{st.Env, st.With} {
+			for _, k := range sortedKeys(m) {
+				v := m[k]
+				add(&v)
+			}
+		}
+		if e := st.Effect; e != nil {
+			add(e.Target)
+			add(e.SHA)
+			add(e.Tag)
+		}
+	}
+	return out
+}
+
+func sortedKeys(m map[string]spec.Value) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
 }

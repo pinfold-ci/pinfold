@@ -62,8 +62,10 @@ var artifactOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_upload_[a-z][a
 // Workflow checks one generated file against the IR workflow it came from.
 func Workflow(file, content string, w *ir.Workflow) diag.List {
 	v := &verifier{file: file, zones: map[string]ir.Zone{}, privilegedTrigger: w.Class == ir.Privileged}
+	v.outputs = map[string][]string{}
 	for _, j := range w.Jobs {
 		v.zones[j.Name] = j.Zone
+		v.outputs[j.Name] = j.Outputs
 	}
 	var doc yaml.Node
 	dec := yaml.NewDecoder(bytes.NewReader([]byte(content)))
@@ -137,8 +139,9 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 
 type verifier struct {
 	file              string
-	zones             map[string]ir.Zone // job name -> zone, from the IR
-	privilegedTrigger bool               // the workflow runs under a privileged trigger
+	zones             map[string]ir.Zone  // job name -> zone, from the IR
+	privilegedTrigger bool                // the workflow runs under a privileged trigger
+	outputs           map[string][]string // job name -> declared output names, from the IR
 	diags             diag.List
 }
 
@@ -267,9 +270,10 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 		case inStep(path, "env") && len(path) == 6:
 			v.withRule(n, where) // any other env name gets the with: rule
 		case len(path) == 4 && path[0] == "jobs" && path[2] == "outputs":
-			// Only the artifact id and digest a generated upload step reports.
-			if !artifactOutputRE.MatchString(n.Value) {
-				v.report("PF904", n, "job output %s may only report a generated upload step's artifact id or digest", where)
+			// The artifact id and digest a generated upload step reports, or a
+			// declared output read from the job's own steps under its own name.
+			if !artifactOutputRE.MatchString(n.Value) && !v.userOutput(path[1], path[3], n.Value) {
+				v.report("PF904", n, "job output %s may only report a generated upload step's artifact id or digest, or a declared output", where)
 			}
 		case inStep(path, "with") && len(path) == 6 && path[5] == "artifact-ids" && bindOutputRE.MatchString(n.Value):
 			return // bindings checks it names the bind step right before
@@ -279,6 +283,25 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 			v.report("PF904", n, "expression in %s", where)
 		}
 	}
+}
+
+// userOutputRE is a declared output: the same output of one or more of the
+// job's own steps, joined with ||.
+var userOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_step_[0-9]+\.outputs\.([a-z][a-z0-9_-]{0,62})(?: \|\| steps\.pinfold_step_[0-9]+\.outputs\.([a-z][a-z0-9_-]{0,62}))* \}\}$`)
+var userOutputPartRE = regexp.MustCompile(`steps\.pinfold_step_[0-9]+\.outputs\.([a-z][a-z0-9_-]{0,62})`)
+
+// userOutput reports a job output that the IR declares, whose value reads
+// only that output name from the job's own steps.
+func (v *verifier) userOutput(job, key, value string) bool {
+	if !slices.Contains(v.outputs[job], key) || !userOutputRE.MatchString(value) {
+		return false
+	}
+	for _, m := range userOutputPartRE.FindAllStringSubmatch(value, -1) {
+		if m[1] != key {
+			return false
+		}
+	}
+	return true
 }
 
 // credentialIn reports a credential reference inside any expression in s.

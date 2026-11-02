@@ -92,6 +92,9 @@ func lowerJob(w *Workflow, j *spec.Job) *Job {
 	for _, n := range j.Needs {
 		out.Needs = append(out.Needs, n.Name)
 	}
+	for _, o := range j.Outputs {
+		out.Outputs = append(out.Outputs, o.Name)
+	}
 	for _, p := range j.Permissions {
 		if p.Level == "none" {
 			continue
