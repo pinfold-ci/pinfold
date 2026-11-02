@@ -107,6 +107,14 @@ func (c *checker) workflow(w *spec.Workflow, iw *ir.Workflow) {
 			c.add("PF315", j.Span, "use a GitHub-hosted runner (e.g. ubuntu-24.04), or add ephemeral_runner: true if this runner is a fresh machine for every job",
 				"job %q %s, but runs on %q, which isn't a standard GitHub-hosted runner, so Pinfold can't assume a fresh machine", j.Name, zoneWhat(zone), j.Runner)
 		}
+		// An OIDC token is a credential an external service (PyPI, a cloud)
+		// trusts. Binding the job to an environment lets the repository add
+		// protection rules there, and lets the service's trust policy name the
+		// environment instead of trusting every workflow in the repository.
+		if slices.ContainsFunc(j.Permissions, func(p spec.Permission) bool { return p.Scope == "id-token" && p.Level == "write" }) && j.Environment == "" {
+			c.add("PF318", j.Span, "add environment: <name>, protect it in the repository settings, and name it in the service's trusted publisher or trust policy",
+				"job %q requests an OIDC token (id-token: write) without an environment", j.Name)
+		}
 		for _, st := range j.Steps {
 			if metadataEvent != "" {
 				c.metadataOnly(w, metadataEvent, st)

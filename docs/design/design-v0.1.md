@@ -187,9 +187,10 @@ workflows:
 2. **Conditions:**
    - `event`, `branch` (the pushed branch or the PR's base; only on `push`, `pull_request_target` and `manual`, else PF317), `tag`, `label`, `comment.starts_with`, `maintainer`, `association`, `actor` (`PF322` warning on privileged jobs);
    - `status`: success, failure, always, not_cancelled.
-3. **Permissions:** values are checked per scope (`id-token: write|none`; the others `read|write|none`). The scope table is **versioned data**.
-4. **`uses` forms:** `owner/repo@tag` and `owner/repo/path@tag`. No bare SHAs, branches, `docker://`, or local `./` actions in privileged jobs.
-5. **Escape hatch:** `unsafe_run: true` per workflow, stamped into the header, and flagged as a security-relevant change by `pinfold-verify`. Extension keys come from an allowlist; `timeout-minutes` and `concurrency` are first-class fields.
+3. **Permissions:** values are checked per scope (`id-token: write|none`; the others `read|write|none`). The scope table is **versioned data**. A job with `id-token: write` must name an `environment:` (PF318), so the repository can protect it and the OIDC trust policy can name it.
+4. **`uses` forms:** `owner/repo@tag` and `owner/repo/path@tag`. No bare SHAs, branches, `docker://`, or local `./` actions in privileged jobs. Common branch names (`@main`, `@master`, …) are rejected at validate time (PF123); `pinfold lock` checks every ref against the remote (M4).
+5. **Artifacts:** `consumes.to` must be a subdirectory of the workspace. Downloads run after a leading checkout, and a later checkout in a consuming job is an error (PF129).
+6. **Escape hatch:** `unsafe_run: true` per workflow, stamped into the header, and flagged as a security-relevant change by `pinfold-verify`. Extension keys come from an allowlist; `timeout-minutes` and `concurrency` are first-class fields.
 
 ### Effects (lowering)
 Each effect becomes **one pinned `actions/github-script` step**:

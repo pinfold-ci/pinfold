@@ -2,6 +2,7 @@ package spec
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"slices"
 	"strconv"
@@ -24,6 +25,11 @@ var (
 	usesRE      = regexp.MustCompile(`^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}(?:/[A-Za-z0-9._/-]+)?@[A-Za-z0-9._/+-]{1,128}$`)
 	hexSHARE    = regexp.MustCompile(`^[0-9a-f]{7,64}$`)
 )
+
+// branchRefs are ref names that are branches in practice. Telling a branch
+// from a tag needs the remote; pinfold lock (M4) does that for every ref, and
+// this list catches the common case at validate time (external audit).
+var branchRefs = []string{"main", "master", "develop", "development", "dev", "trunk", "head", "latest", "nightly", "next", "canary", "edge"}
 
 // Decode turns the loader's top-level mapping into a Spec. It reports every
 // problem it finds rather than stopping at the first; the Spec is only
@@ -399,11 +405,30 @@ func (d *decoder) consumes(n *yaml.Node) []Consume {
 				c.From = Ref{name, d.span(f.val)}
 			case "to":
 				c.To, _ = d.str(f.val, "to")
+				d.workspacePath(f.val, c.To, "to")
 			}
 		}
 		out = append(out, c)
 	}
 	return out
+}
+
+// workspacePath rejects a download directory outside a subdirectory of the
+// workspace: ".", absolute paths, and paths that climb out with "..". A
+// download there could overwrite the checked-out repository or files the
+// runner uses (external audit).
+func (d *decoder) workspacePath(n *yaml.Node, p, what string) {
+	if p == "" {
+		return
+	}
+	slashed := strings.ReplaceAll(p, `\`, "/")
+	clean := path.Clean(slashed)
+	switch {
+	case strings.HasPrefix(p, "/") || strings.HasPrefix(p, `\`) || strings.HasPrefix(p, "~") || (len(p) > 1 && p[1] == ':'):
+		d.report("PF113", n, "use a path relative to the workspace, e.g. dist", "%s must be a relative path, not %q", what, p)
+	case clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || slices.Contains(strings.Split(slashed, "/"), ".."):
+		d.report("PF113", n, "use a subdirectory of the workspace, e.g. dist", "%s must be a subdirectory of the workspace, not %q", what, p)
+	}
 }
 
 // checkRefs reports needs and consumes entries that name jobs missing from the workflow.
@@ -427,6 +452,16 @@ func (d *decoder) checkRefs(w *Workflow) {
 		}
 		for _, c := range j.Consumes {
 			check(c.From, fmt.Sprintf("job %q: consumes %q from", j.Name, c.Name))
+		}
+		// Downloads run after a leading checkout and before every other step;
+		// a later checkout would clean the workspace and delete them.
+		if len(j.Consumes) > 0 {
+			for i, st := range j.Steps {
+				if i > 0 && st.Kind == StepCheckout {
+					d.diags.Add(codes.New("PF129", st.Span, fmt.Sprintf("job %q consumes artifacts, so its checkout must be the first step", j.Name),
+						"move the checkout to the top of the job; Pinfold downloads the artifacts right after it"))
+				}
+			}
 		}
 	}
 }
@@ -589,6 +624,8 @@ func (d *decoder) uses(n *yaml.Node) string {
 		d.report("PF123", n, hint, "local actions (%s) are not supported", ref)
 	case !usesRE.MatchString(ref) || strings.Contains(ref, ".."):
 		d.report("PF123", n, hint, "invalid action reference %q", ref)
+	case slices.Contains(branchRefs, strings.ToLower(ref[strings.LastIndexByte(ref, '@')+1:])):
+		d.report("PF123", n, "reference a release tag, e.g. @v4; pinfold lock pins it to a commit", "branch and moving references are not accepted (%s)", ref)
 	case hexSHARE.MatchString(ref[strings.LastIndexByte(ref, '@')+1:]):
 		d.report("PF123", n, "reference a release tag; pinfold lock pins it to a commit and records it in pinfold.lock", "bare commit SHAs are not accepted (%s)", ref)
 	default:

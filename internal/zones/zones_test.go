@@ -45,7 +45,7 @@ func TestZones(t *testing.T) {
 		{"run with a write scope", wf(push, "        permissions: { contents: write }\n        steps: [ { run: make } ]\n"), "PF301"},
 		{"run with a secret", wf(push, "        steps: [ { run: ./deploy, env: { T: { secret: TOKEN } } } ]\n"), "PF301"},
 		{"run with an environment", wf(push, "        environment: prod\n        steps: [ { run: make } ]\n"), "PF301"},
-		{"run with OIDC", wf(push, "        permissions: { id-token: write }\n        steps: [ { run: make } ]\n"), "PF301"},
+		{"run with OIDC", wf(push, "        environment: pypi\n        permissions: { id-token: write }\n        steps: [ { run: make } ]\n"), "PF301"},
 		{"run in an unprivileged job", wf(push, "        permissions: { contents: read }\n        steps: [ { run: make } ]\n"), ""},
 		{"unsafe_run turns it off", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: ubuntu-24.04\n        steps: [ { run: make } ]\n", "PF310"},
 		{"unsafe_run keeps checkout hardening", "version: 0\nworkflows:\n  w:\n    on: " + comment + "\n    unsafe_run: true\n    jobs:\n      j:\n        runner: ubuntu-24.04\n        steps: [ { uses: actions/checkout@v7, with: { ref: refs/pull/1/head } } ]\n", "PF310 PF303"},
@@ -57,7 +57,7 @@ func TestZones(t *testing.T) {
 		{"setup-python is not privileged_ok", wf(comment, "        steps: [ { uses: actions/setup-python@v7 } ]\n"), "PF304"},
 		{"unknown action in unprivileged job is fine", wf(push, "        steps: [ { uses: evil/action@v1 } ]\n"), ""},
 		{"privileged_ok action is fine", wf(comment, "        steps: [ { uses: actions/upload-artifact@v7, with: { name: x, path: y } } ]\n"), ""},
-		{"pinned container is fine", wf(push, "        permissions: { id-token: write }\n        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]\n"), ""},
+		{"pinned container is fine", wf(push, "        environment: pypi\n        permissions: { id-token: write }\n        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]\n"), ""},
 		// PF303: checkout overrides in a privileged context.
 		{"checkout ref override", wf(comment, "        steps: [ { uses: actions/checkout@v7, with: { ref: refs/pull/1/head } } ]\n"), "PF303"},
 		{"checkout repository override", wf(comment, "        steps: [ { uses: actions/checkout@v7, with: { repository: attacker/fork } } ]\n"), "PF303"},
@@ -98,6 +98,7 @@ workflows:
       publish:
         runner: ubuntu-24.04
         needs: [build]
+        environment: pypi
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -125,6 +126,7 @@ workflows:
       publish:
         runner: ubuntu-24.04
         needs: [build]
+        environment: pypi
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -193,6 +195,7 @@ workflows:
       publish:
         runner: ubuntu-24.04
         needs: [build]
+        environment: pypi
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -260,6 +263,7 @@ workflows:
       publish:
         needs: [build]
         runner: ubuntu-24.04
+        environment: pypi
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -324,6 +328,7 @@ workflows:
       publish:
         runner: ` + publish + `
 ` + extra + `        needs: [build]
+        environment: pypi
         permissions: { id-token: write }
         consumes: { dist: { from: build, to: dist/ } }
         steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]
@@ -484,4 +489,20 @@ func only(code string, codes []string) []string {
 		}
 	}
 	return out
+}
+
+// TestOIDCNeedsEnvironment: an id-token job must name an environment, so the
+// repository can protect it and the service can trust only it (PF318).
+func TestOIDCNeedsEnvironment(t *testing.T) {
+	steps := "        steps: [ { uses: pypa/gh-action-pypi-publish@v1.14.3 } ]\n"
+	tests := []struct{ job, want string }{
+		{"        environment: pypi\n        permissions: { id-token: write }\n" + steps, ""},
+		{"        permissions: { id-token: write }\n" + steps, "PF318"},
+		{"        permissions: { contents: read }\n        steps: [ { run: make } ]\n", ""},
+	}
+	for _, tt := range tests {
+		if got := strings.Join(check(t, wf("{ push: { tags: [\"v*\"] } }", tt.job)), " "); got != tt.want {
+			t.Errorf("%q: codes = %q, want %q", tt.job, got, tt.want)
+		}
+	}
 }
