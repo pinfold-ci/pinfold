@@ -1,0 +1,2 @@
+testdata/malformed/43-branch-condition-on-comment.yml:8:13: error PF317: job "greet" has a branch condition, but issue_comment events have no branch to match
+    hint: branch: works only on push, pull_request_target and manual; remove it, or move the job to a workflow on one of those

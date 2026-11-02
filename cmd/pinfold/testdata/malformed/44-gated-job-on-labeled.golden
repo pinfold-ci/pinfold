@@ -1,0 +1,2 @@
+testdata/malformed/44-gated-job-on-labeled.yml:4:11: error PF316: job "ack" is behind the maintainer gate, but issues runs it for types labeled, not only for content the triggering user just wrote (types: [opened])
+    hint: add types: [opened] to the trigger

@@ -3,18 +3,23 @@
 const actor = val('ACTOR');
 const triggering = val('TRIGGERING_ACTOR');
 const roles = json('ROLES', ['admin', 'maintain', 'write']);
-const sender = context.payload && context.payload.sender;
-// On a comment event the job acts on the comment's text, so the comment must
-// be new and written by the triggering user: otherwise deleting or editing
-// someone else's command would run it as the maintainer (#64).
-const comment = context.payload && context.payload.comment;
-const author = comment && comment.user && comment.user.login;
+// When the event carries content (a comment, review, issue, pull request or
+// discussion), the job acts on it, so it must be new and written by the
+// triggering user: otherwise deleting or editing someone else's command, or
+// labelling someone else's issue, would run it as the maintainer (#64).
+// Checked in this order because a comment event also carries its issue.
+const payload = context.payload || {};
+const content = [
+  ['comment', 'created'], ['review', 'submitted'], ['discussion', 'created'], ['issue', 'opened'], ['pull_request', 'opened'],
+].find(([k]) => payload[k]);
+const item = content && payload[content[0]];
+const author = item && item.user && item.user.login;
 let ok = false;
 if (!actor || actor !== triggering) {
   core.notice('pinfold: maintainer gate: this run was started or re-run by a different user; skipping');
-} else if (comment && (context.payload.action !== 'created' || typeof author !== 'string' || author.toLowerCase() !== actor.toLowerCase())) {
-  core.notice('pinfold: maintainer gate: only a new comment by the triggering user counts; skipping');
-} else if (/\[bot\]$/i.test(actor) || !sender || sender.type !== 'User') {
+} else if (content && (payload.action !== content[1] || typeof author !== 'string' || author.toLowerCase() !== actor.toLowerCase())) {
+  core.notice('pinfold: maintainer gate: only new content written by the triggering user counts; skipping');
+} else if (/\[bot\]$/i.test(actor) || !payload.sender || payload.sender.type !== 'User') {
   core.notice('pinfold: maintainer gate: bots and apps are not maintainers; skipping');
 } else {
   try {

@@ -113,7 +113,7 @@
 `maintainer: true` (allowed only at the top level of a job's `if: all:`) becomes a **generated first step**:
 - It calls `GET /repos/{repo}/collaborators/{triggering_actor}/permission`.
 - It reads `role_name` (not the legacy `permission` field) and **allows only `admin`, `maintain` or `write`**, plus custom role names the spec lists explicitly. Any status other than 200, a bot or app actor, or a mismatch between `actor` and `triggering_actor` counts as a deny.
-- On a comment event it also requires a **new** comment (`action: created`) written by the triggering user, and a gated job on a comment trigger must declare `types: [created]` (PF316). Otherwise editing or deleting someone else's command would run it with the maintainer's authority.
+- When the event carries content (a comment, review, issue, pull request or discussion) it also requires that content to be **new** (`created`, `opened` or `submitted`) and written by the triggering user, and a gated job must declare that one activity type on such triggers (PF316). Otherwise editing or deleting someone else's command, or labelling someone else's issue, would run it with the maintainer's authority.
 - It sets `outputs.ok`. Every later step has `if: steps.pinfold_gate.outputs.ok == 'true'`, so a non-maintainer gets a **neutral skip, not a red X**.
 
 A job that `needs:` a gated job must carry its own gate (PF314, an error): a denied gate only skips the gated job's steps, and the job still succeeds.
@@ -185,7 +185,7 @@ workflows:
 ### Spec rules
 1. **Value kinds:** `literal | context | secret | var | output`. `${{` anywhere is `PF201`.
 2. **Conditions:**
-   - `event`, `branch` (base), `tag`, `label`, `comment.starts_with`, `maintainer`, `association`, `actor` (`PF322` warning on privileged jobs);
+   - `event`, `branch` (the pushed branch or the PR's base; only on `push`, `pull_request_target` and `manual`, else PF317), `tag`, `label`, `comment.starts_with`, `maintainer`, `association`, `actor` (`PF322` warning on privileged jobs);
    - `status`: success, failure, always, not_cancelled.
 3. **Permissions:** values are checked per scope (`id-token: write|none`; the others `read|write|none`). The scope table is **versioned data**.
 4. **`uses` forms:** `owner/repo@tag` and `owner/repo/path@tag`. No bare SHAs, branches, `docker://`, or local `./` actions in privileged jobs.

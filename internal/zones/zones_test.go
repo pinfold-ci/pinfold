@@ -434,6 +434,12 @@ workflows:
 		{"{ issue_comment: { types: [created, edited] } }", "PF316"},
 		{"{ issue_comment: { types: [deleted] } }", "PF316"},
 		{"{ discussion_comment: {} }", "PF316"},
+		{"{ issues: { types: [opened] } }", ""},
+		{"{ issues: { types: [labeled] } }", "PF316"},
+		{"{ issues: {} }", "PF316"},
+		{"{ discussion: { types: [created] } }", ""},
+		{"{ discussion: { types: [edited] } }", "PF316"},
+		{"{ push: { tags: [\"v*\"] } }", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.on, func(t *testing.T) {
@@ -442,4 +448,40 @@ workflows:
 			}
 		})
 	}
+}
+
+// TestBranchConditionNeedsABranch: on comment, issue, schedule and review
+// events a branch condition is always or never true (PF317).
+func TestBranchConditionNeedsABranch(t *testing.T) {
+	job := "        if: { branch: main }\n        steps:\n          - run: echo hi\n"
+	tests := []struct{ on, want string }{
+		{"{ push: {} }", ""},
+		{"{ manual: {} }", ""},
+		{"{ pull_request_target: { types: [opened] } }", ""},
+		{"{ issue_comment: { types: [created] } }", "PF317"},
+		{"{ schedule: { cron: [\"0 3 * * 1\"] } }", "PF317"},
+		{"{ push: {}, issues: { types: [opened] } }", "PF317"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.on, func(t *testing.T) {
+			if got := strings.Join(only("PF317", check(t, wf(tt.on, job))), " "); got != tt.want {
+				t.Errorf("codes = %q, want %q", got, tt.want)
+			}
+		})
+	}
+	// Nested inside any:, too.
+	nested := "        if: { any: [ { event: manual }, { all: [ { branch: main } ] } ] }\n        steps:\n          - run: echo hi\n"
+	if got := strings.Join(check(t, wf("{ schedule: { cron: [\"0 3 * * 1\"] } }", nested)), " "); got != "PF317" {
+		t.Errorf("nested: codes = %q, want PF317", got)
+	}
+}
+
+func only(code string, codes []string) []string {
+	var out []string
+	for _, c := range codes {
+		if c == code {
+			out = append(out, c)
+		}
+	}
+	return out
 }
