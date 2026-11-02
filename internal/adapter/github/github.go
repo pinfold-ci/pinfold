@@ -194,6 +194,14 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 	if gated {
 		out = append(out, gateStep(w, j))
 	}
+	rest := j.Steps
+	// A leading checkout runs before the downloads: checking out cleans the
+	// workspace and would delete them (the decoder rejects a later checkout
+	// in a consuming job, PF129).
+	if len(j.Consumes) > 0 && len(rest) > 0 && rest[0].Kind == ir.Checkout {
+		out = append(out, guard(gated, step(w, j, rest[0])))
+		rest = rest[1:]
+	}
 	for _, c := range j.Consumes {
 		dl := generatedActions["download"]
 		out = append(out, guard(gated, bindStep(j, c)))
@@ -207,7 +215,7 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 			}},
 		}))
 	}
-	for _, s := range j.Steps {
+	for _, s := range rest {
 		out = append(out, guard(gated, step(w, j, s)))
 	}
 	for _, a := range j.Produces {

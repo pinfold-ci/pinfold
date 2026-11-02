@@ -9,6 +9,7 @@ import (
 	"io"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 // Severity is how serious a diagnostic is.
@@ -97,9 +98,9 @@ func (l List) Sort() {
 func (l List) WriteText(w io.Writer) error {
 	var b strings.Builder
 	for _, d := range l {
-		fmt.Fprintf(&b, "%s: %s %s: %s\n", d.Span, d.Severity, d.Code, d.Message)
+		fmt.Fprintf(&b, "%s: %s %s: %s\n", printable(d.Span.String()), d.Severity, d.Code, printable(d.Message))
 		if d.Hint != "" {
-			fmt.Fprintf(&b, "    hint: %s\n", d.Hint)
+			fmt.Fprintf(&b, "    hint: %s\n", printable(d.Hint))
 		}
 	}
 	_, err := io.WriteString(w, b.String())
@@ -114,4 +115,23 @@ func (l List) WriteJSON(w io.Writer) error {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(l)
+}
+
+// printable escapes control, format and other non-printing characters, so
+// spec text quoted in a message can't move the cursor, hide text or forge
+// another diagnostic line in a terminal or CI log (external audit). JSON
+// output escapes them already.
+func printable(s string) string {
+	if !strings.ContainsFunc(s, func(r rune) bool { return !unicode.IsPrint(r) }) {
+		return s
+	}
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsPrint(r) {
+			b.WriteRune(r)
+		} else {
+			fmt.Fprintf(&b, "\\u%04X", r)
+		}
+	}
+	return b.String()
 }

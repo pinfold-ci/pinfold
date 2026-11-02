@@ -88,3 +88,18 @@ func TestWriteJSONEmpty(t *testing.T) {
 		t.Errorf("empty list = %q, want %q", buf.String(), "[]\n")
 	}
 }
+
+// TestWriteTextEscapesControlCharacters: spec text quoted in a message must not
+// reach the terminal as escape sequences or line breaks (external audit).
+func TestWriteTextEscapesControlCharacters(t *testing.T) {
+	l := List{{Code: "PF113", Severity: Error, Span: Span{File: "a\x1b[2J.yml", Line: 1, Col: 1},
+		Message: "invalid environment \"prod\x1b[1A\rt.yml:1:1: ok\u202e\"", Hint: "x\ny"}}
+	var b bytes.Buffer
+	if err := l.WriteText(&b); err != nil {
+		t.Fatal(err)
+	}
+	want := "a\\u001B[2J.yml:1:1: error PF113: invalid environment \"prod\\u001B[1A\\u000Dt.yml:1:1: ok\\u202E\"\n    hint: x\\u000Ay\n"
+	if b.String() != want {
+		t.Errorf("got  %q\nwant %q", b.String(), want)
+	}
+}
