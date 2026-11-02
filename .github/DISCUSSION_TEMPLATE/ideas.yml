@@ -1,0 +1,19 @@
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What would you like Pinfold to do? A new trigger, effect, registry action, platform, diagnostic…
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: The workflow you're trying to write today, and why the current spec can't express it safely.
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        Ideas that change the spec language, trust zones, taint, the verifier, the lock or the guarantees become an RFC once there's a concrete design.
