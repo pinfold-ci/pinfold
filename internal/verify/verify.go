@@ -41,7 +41,9 @@ var (
 var (
 	scriptEnvRE    = regexp.MustCompile(`^(T|PINFOLD)_[A-Z0-9_]+$`)
 	containerEnvRE = regexp.MustCompile(`^INPUT_[A-Z0-9_]+$`)
-	credentialRE   = regexp.MustCompile(`\bsecrets\.|\bgithub\.token\b`)
+	// Any use of the secrets context (secrets.X, secrets['X'], toJSON(secrets))
+	// or of the job token, inside an expression.
+	credentialRE = regexp.MustCompile(`(?i)\bsecrets\b|\bgithub\s*(?:\.\s*token\b|\[\s*['"]token['"]\s*\])`)
 )
 
 // gateEnv is the exact env of the generated maintainer gate step.
@@ -58,7 +60,7 @@ var artifactOutputRE = regexp.MustCompile(`^\$\{\{ steps\.pinfold_upload_[a-z][a
 
 // Workflow checks one generated file against the IR workflow it came from.
 func Workflow(file, content string, w *ir.Workflow) diag.List {
-	v := &verifier{file: file, zones: map[string]ir.Zone{}}
+	v := &verifier{file: file, zones: map[string]ir.Zone{}, privilegedTrigger: w.Class == ir.Privileged}
 	for _, j := range w.Jobs {
 		v.zones[j.Name] = j.Zone
 	}
@@ -133,9 +135,10 @@ func Workflow(file, content string, w *ir.Workflow) diag.List {
 }
 
 type verifier struct {
-	file  string
-	zones map[string]ir.Zone // job name -> zone, from the IR
-	diags diag.List
+	file              string
+	zones             map[string]ir.Zone // job name -> zone, from the IR
+	privilegedTrigger bool               // the workflow runs under a privileged trigger
+	diags             diag.List
 }
 
 // stamped reports whether the file's leading comment block carries the
@@ -252,7 +255,7 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 			return
 		}
 		where := strings.Join(path, ".")
-		if len(path) >= 2 && path[0] == "jobs" && v.zones[path[1]] != ir.ZonePrivileged && credentialRE.MatchString(n.Value) {
+		if len(path) >= 2 && path[0] == "jobs" && v.zones[path[1]] != ir.ZonePrivileged && credentialIn(n.Value) {
 			// A job that the IR doesn't treat as privileged must not receive credentials.
 			v.report("PF904", n, "credential in %s, but job %q isn't privileged", where, path[1])
 			return
@@ -277,11 +280,28 @@ func (v *verifier) expressions(n *yaml.Node, path []string) {
 	}
 }
 
-// withRule allows only allowlisted expressions in n.
+// credentialIn reports a credential reference inside any expression in s.
+func credentialIn(s string) bool {
+	for _, m := range exprRE.FindAllStringSubmatch(s, -1) {
+		if credentialRE.MatchString(m[1]) {
+			return true
+		}
+	}
+	// An unterminated expression is reported elsewhere; check its tail too.
+	if i := strings.LastIndex(s, "${{"); i >= 0 && !strings.Contains(s[i:], "}}") {
+		return credentialRE.MatchString(s[i:])
+	}
+	return false
+}
+
+// withRule allows only allowlisted expressions in n. Under a privileged
+// trigger github.sha isn't trusted (design §4: commit.sha is untainted only
+// under trusted triggers), so it is refused there.
 func (v *verifier) withRule(n *yaml.Node, where string) {
 	rest := n.Value
 	for _, m := range exprRE.FindAllStringSubmatch(n.Value, -1) {
-		if !allowedInWith.MatchString(strings.TrimSpace(m[1])) {
+		e := strings.TrimSpace(m[1])
+		if !allowedInWith.MatchString(e) || (v.privilegedTrigger && e == "github.sha") {
 			v.report("PF904", n, "expression ${{%s}} is not allowed in %s", m[1], where)
 			return
 		}

@@ -93,8 +93,8 @@
   - `PF302`: cache restore.
   - `PF303`: checkout override.
   - `PF304`: an action that isn't `privileged_ok`.
-- **Feeder job:** an unprivileged job whose artifacts or outputs a privileged job consumes. It may run user code, but **can't restore caches** (`PF305`). Its artifacts are bound by digest.
-- **Unprivileged job:** trusted triggers only. `contents: read` at most.
+- **Feeder job:** an unprivileged job whose artifacts or outputs a privileged job consumes. It may run user code, but **can't restore caches** (`PF305`). Its artifacts are bound by digest. When it consumes artifacts itself, it gets a generated `actions: read` so its bind step can check them (D-036), the same as a privileged consumer.
+- **Unprivileged job:** trusted triggers only. `contents: read` at most. It downloads consumed artifacts by name, without a bind step or any extra scope.
 - **Outputs** are written with the generated `pinfold_output NAME VALUE` helper (random heredoc delimiter). They are **always tainted** when consumed by a privileged job.
 
 ### Taint
