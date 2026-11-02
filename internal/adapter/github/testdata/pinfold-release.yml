@@ -102,9 +102,9 @@ jobs:
 
               // Keep at most max links; later ones become plain text. Counts scheme
               // links (http, https, ftp, ftps, mailto), www. autolinks, and
-              // protocol-relative targets of inline links (also after spaces) and of
-              // reference definitions ([x]: //host).
-              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
+              // protocol-relative targets of inline links (also after spaces or a line
+              // break) and of reference definitions ([x]: //host, also on the next line).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\]\s*\(\s*)\/\/|(?<=\]:\s*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;
@@ -310,9 +310,9 @@ jobs:
 
               // Keep at most max links; later ones become plain text. Counts scheme
               // links (http, https, ftp, ftps, mailto), www. autolinks, and
-              // protocol-relative targets of inline links (also after spaces) and of
-              // reference definitions ([x]: //host).
-              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
+              // protocol-relative targets of inline links (also after spaces or a line
+              // break) and of reference definitions ([x]: //host, also on the next line).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\]\s*\(\s*)\/\/|(?<=\]:\s*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;
@@ -497,9 +497,9 @@ jobs:
 
               // Keep at most max links; later ones become plain text. Counts scheme
               // links (http, https, ftp, ftps, mailto), www. autolinks, and
-              // protocol-relative targets of inline links (also after spaces) and of
-              // reference definitions ([x]: //host).
-              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
+              // protocol-relative targets of inline links (also after spaces or a line
+              // break) and of reference definitions ([x]: //host, also on the next line).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\]\s*\(\s*)\/\/|(?<=\]:\s*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;

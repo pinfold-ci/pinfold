@@ -30,8 +30,11 @@ func condition(c *ir.Condition) string {
 		// The pull request's base branch, or a pushed (or manually chosen)
 		// branch. The refs/heads/ guard keeps a tag of the same name from
 		// matching (external audit).
+		// Keyed on the event name, not on base_ref being empty: expressions
+		// compare null loosely (null == '0' is true), so a branch named "0"
+		// would match every push.
 		return anyOf(c.Values, func(v string) string {
-			return "github.base_ref == " + lit(v) + " || (github.base_ref == '' && startsWith(github.ref, 'refs/heads/') && github.ref_name == " + lit(v) + ")"
+			return "(github.event_name == 'pull_request_target' && github.base_ref == " + lit(v) + ") || (github.event_name != 'pull_request_target' && startsWith(github.ref, 'refs/heads/') && github.ref_name == " + lit(v) + ")"
 		})
 	case "tag":
 		return anyOf(c.Values, func(v string) string {

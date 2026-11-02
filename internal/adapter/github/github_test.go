@@ -192,7 +192,7 @@ func TestConditionQuoting(t *testing.T) {
 // pull request matches on its base branch (external audit).
 func TestBranchConditionGuard(t *testing.T) {
 	got := condition(&ir.Condition{Kind: "branch", Values: []string{"production"}})
-	want := "github.base_ref == 'production' || (github.base_ref == '' && startsWith(github.ref, 'refs/heads/') && github.ref_name == 'production')"
+	want := "(github.event_name == 'pull_request_target' && github.base_ref == 'production') || (github.event_name != 'pull_request_target' && startsWith(github.ref, 'refs/heads/') && github.ref_name == 'production')"
 	if got != want {
 		t.Errorf("condition = %s, want %s", got, want)
 	}
