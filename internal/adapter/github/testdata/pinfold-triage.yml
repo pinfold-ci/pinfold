@@ -63,6 +63,10 @@ jobs:
                 // even after a word character. Entities are already escaped (escapeHtml).
                 s = s.replace(/#(\d+)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
                 s = s.replace(/\bGH-(\d+)/gi, (m, num) => (refs.has(num) ? m : m.slice(0, 3) + '\u200b' + num));
+                // A full issue, pull request or discussion URL also creates a
+                // cross-reference on that item's timeline, in any repository; break the
+                // number the same way (external audit).
+                s = s.replace(/(github\.com\/[^\s\/]+\/[^\s\/]+\/(?:issues|pull|discussions)\/)(\d+)/gi, '$1\u200b$2');
                 // Every @name, whatever precedes it: GitHub notifies for _@user_ (the _
                 // is a word character), so no lookbehind (security audit NV1). This also
                 // breaks e-mail autolinks, which costs nothing in a bot comment.
@@ -72,8 +76,10 @@ jobs:
               }
 
               // Keep at most max links; later ones become plain text. Counts scheme
-              // links, www. autolinks and protocol-relative Markdown link targets.
-              const LINK_START = String.raw`(?:https?:\/\/|(?<![\w.\-])www\.|(?<=\]\()\/\/)`;
+              // links (http, https, ftp, ftps, mailto), www. autolinks, and
+              // protocol-relative targets of inline links (also after spaces) and of
+              // reference definitions ([x]: //host).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;
@@ -255,6 +261,10 @@ jobs:
                 // even after a word character. Entities are already escaped (escapeHtml).
                 s = s.replace(/#(\d+)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
                 s = s.replace(/\bGH-(\d+)/gi, (m, num) => (refs.has(num) ? m : m.slice(0, 3) + '\u200b' + num));
+                // A full issue, pull request or discussion URL also creates a
+                // cross-reference on that item's timeline, in any repository; break the
+                // number the same way (external audit).
+                s = s.replace(/(github\.com\/[^\s\/]+\/[^\s\/]+\/(?:issues|pull|discussions)\/)(\d+)/gi, '$1\u200b$2');
                 // Every @name, whatever precedes it: GitHub notifies for _@user_ (the _
                 // is a word character), so no lookbehind (security audit NV1). This also
                 // breaks e-mail autolinks, which costs nothing in a bot comment.
@@ -264,8 +274,10 @@ jobs:
               }
 
               // Keep at most max links; later ones become plain text. Counts scheme
-              // links, www. autolinks and protocol-relative Markdown link targets.
-              const LINK_START = String.raw`(?:https?:\/\/|(?<![\w.\-])www\.|(?<=\]\()\/\/)`;
+              // links (http, https, ftp, ftps, mailto), www. autolinks, and
+              // protocol-relative targets of inline links (also after spaces) and of
+              // reference definitions ([x]: //host).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;
@@ -387,7 +399,7 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PINFOLD_BODY: 'Labelled by @{{ actor }}.'
-          PINFOLD_STICKY: triage-ack
+          PINFOLD_STICKY: triage/triage-ack
           PINFOLD_TARGET: '${{ github.event.issue.number }}'
           PINFOLD_VARS: '["actor"]'
           T_V0: '${{ github.actor }}'
@@ -434,6 +446,10 @@ jobs:
                 // even after a word character. Entities are already escaped (escapeHtml).
                 s = s.replace(/#(\d+)/g, (m, num) => (refs.has(num) ? m : '#\u200b' + num));
                 s = s.replace(/\bGH-(\d+)/gi, (m, num) => (refs.has(num) ? m : m.slice(0, 3) + '\u200b' + num));
+                // A full issue, pull request or discussion URL also creates a
+                // cross-reference on that item's timeline, in any repository; break the
+                // number the same way (external audit).
+                s = s.replace(/(github\.com\/[^\s\/]+\/[^\s\/]+\/(?:issues|pull|discussions)\/)(\d+)/gi, '$1\u200b$2');
                 // Every @name, whatever precedes it: GitHub notifies for _@user_ (the _
                 // is a word character), so no lookbehind (security audit NV1). This also
                 // breaks e-mail autolinks, which costs nothing in a bot comment.
@@ -443,8 +459,10 @@ jobs:
               }
 
               // Keep at most max links; later ones become plain text. Counts scheme
-              // links, www. autolinks and protocol-relative Markdown link targets.
-              const LINK_START = String.raw`(?:https?:\/\/|(?<![\w.\-])www\.|(?<=\]\()\/\/)`;
+              // links (http, https, ftp, ftps, mailto), www. autolinks, and
+              // protocol-relative targets of inline links (also after spaces) and of
+              // reference definitions ([x]: //host).
+              const LINK_START = String.raw`(?:(?:https?|ftps?):\/\/|mailto:|(?<![\w.\-])www\.|(?<=\][ \t]*\([ \t]*)\/\/|(?<=\]:[ \t]*)\/\/)`;
               const LINK_RE = new RegExp(LINK_START + String.raw`(?:(?!` + LINK_START + String.raw`)[^\s<>()\[\]` + '`' + String.raw`"'])*`, 'gi');
               function capLinks(s, max) {
                 let n = 0;
@@ -555,8 +573,11 @@ jobs:
               if (fences % 2 === 1) body += '\n```';
               body = body + '\n' + marker;
               const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
-              // Match on the marker AND our bot author: anyone can paste the marker.
-              const mine = comments.find((c) => c.user && c.user.login === 'github-actions[bot]' && c.user.type === 'Bot' && (c.body || '').includes(marker));
+              // Match on our bot author AND the marker as the comment's last line (where
+              // we put it): anyone can paste the marker, and the workflow name in it
+              // keeps other workflows' sticky comments apart.
+              const lastLine = (b) => String(b || '').trimEnd().split('\n').pop().trim();
+              const mine = comments.find((c) => c.user && c.user.login === 'github-actions[bot]' && c.user.type === 'Bot' && lastLine(c.body) === marker);
               if (mine) {
                 try {
                   await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });

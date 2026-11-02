@@ -96,6 +96,23 @@ test('link cap counts www. and protocol-relative links', () => {
   assert.strictEqual(S.sanitizeBody('notwww.a.com', { maxLinks: 0 }), 'notwww.a.com');
 });
 
+// External audit and the M3 audit: more link forms count against the cap.
+test('link cap counts spaced, reference, mailto and ftp links', () => {
+  const cap0 = (t) => S.sanitizeBody(t, { maxLinks: 0 });
+  assert.strictEqual(cap0('[x]( //evil.com)'), '[x]( [link removed])');
+  assert.strictEqual(cap0('[x] ( //evil.com)'), '[x] ( [link removed])');
+  assert.strictEqual(cap0('[x]: //evil.com'), '[x]: [link removed]');
+  assert.strictEqual(cap0('[x]:\t//evil.com'), '[x]:\t[link removed]');
+  assert.strictEqual(cap0('mailto:a@b.c'), '[link removed]');
+  assert.strictEqual(cap0('ftp://evil.com/x ftps://e.com'), '[link removed] [link removed]');
+  assert.strictEqual(cap0('a // b'), 'a // b', 'plain slashes are not links');
+});
+
+test('full issue and pull request URLs are neutralised', () => {
+  const out = S.sanitizeBody('see https://github.com/o/r/issues/12 and https://github.com/o/r/pull/3#x', { allowRefs: ['12'] });
+  assert.strictEqual(out, 'see https://github.com/o/r/issues/\u200b12 and https://github.com/o/r/pull/\u200b3#x');
+});
+
 test('more invisible characters are stripped', () => {
   for (const c of ['\u061c', '\u00ad', '\u034f', '\u180e', '\u115f', '\u3164', '\uffa0', '\ufe0f', '\u{e0041}', '\u{e0100}']) {
     assert.strictEqual(S.sanitizeBody('a' + c + 'b'), 'ab', JSON.stringify(c));

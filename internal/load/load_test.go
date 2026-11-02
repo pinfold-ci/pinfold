@@ -35,6 +35,8 @@ func TestRejected(t *testing.T) {
 		{"explicit tag", "a: !!str 1\n", "PF102@1:4"},
 		{"custom tag", "a: !env HOME\n", "PF102@1:4"},
 		{"duplicate key", "a: 1\nb: 2\na: 3\n", "PF103@3:1"},
+		{"escaped noncharacter", "a: \"x\\uFFFEy\"\n", "PF105@1:4"},
+		{"escaped noncharacter in a key", "\"\\uFFFF\": 1\n", "PF105@1:1"},
 		{"nested duplicate key", "w:\n  x: 1\n  x: 2\n", "PF103@3:3"},
 		{"empty file", "", "PF104"},
 		{"only comments", "# nothing\n", "PF104"},

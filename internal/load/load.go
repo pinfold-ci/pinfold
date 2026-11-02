@@ -140,6 +140,12 @@ func checkSubset(file string, n *yaml.Node, diags *diag.List) {
 	case n.Style&yaml.TaggedStyle != 0:
 		diags.Add(codes.New("PF102", at, fmt.Sprintf("explicit tag %s is not allowed", n.Tag), "remove the tag; quote the value if it must be a string"))
 	}
+	// U+FFFE and U+FFFF can only arrive through a "\uFFFE" escape: YAML
+	// doesn't allow them as characters, so a workflow carrying one wouldn't
+	// parse (security audit).
+	if n.Kind == yaml.ScalarNode && strings.ContainsAny(n.Value, "\uFFFE\uFFFF") {
+		diags.Add(codes.New("PF105", at, "value contains the noncharacter U+FFFE or U+FFFF", "remove it: YAML doesn't allow it, so the generated workflow wouldn't parse"))
+	}
 	if n.Kind == yaml.MappingNode {
 		seen := map[string]bool{}
 		for i := 0; i+1 < len(n.Content); i += 2 {
