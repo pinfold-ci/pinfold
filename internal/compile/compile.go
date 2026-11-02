@@ -147,7 +147,7 @@ func Drift(dir string, r *Result) ([]string, error) {
 // Write writes the result's files under dir. It never follows a symlink
 // below dir: a branch can commit .github/workflows/pinfold-*.yml, or a
 // directory on the way, as a link to a file elsewhere, and running the
-// compiler on that branch must not write through it (Mythos audit I1). Each
+// compiler on that branch must not write through it (external audit I1). Each
 // file is written to a temporary file and renamed into place.
 func Write(dir string, r *Result) error {
 	for _, f := range r.Files {

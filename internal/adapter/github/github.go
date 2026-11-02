@@ -365,7 +365,7 @@ func step(w *ir.Workflow, j *ir.Job, s *ir.Step) emit.Map {
 }
 
 // containerStep runs an action's published image pinned by digest instead of
-// the action itself (D-035). Inputs reach the image as INPUT_* environment
+// the action itself (#50). Inputs reach the image as INPUT_* environment
 // variables, with the action's defaults filled in; the zones pass has already
 // rejected inputs the registry doesn't map (PF306). Every mapped input is set,
 // empty if it has no default, as GitHub does for a real action: the PyPI

@@ -31,7 +31,7 @@ type Entry struct {
 	Reviewed              Review     `yaml:"reviewed"`
 }
 
-// Container is a digest-pinned image Pinfold runs instead of the action (D-035).
+// Container is a digest-pinned image Pinfold runs instead of the action (#50).
 type Container struct {
 	Image  string                    `yaml:"image"`
 	Tag    string                    `yaml:"tag"`

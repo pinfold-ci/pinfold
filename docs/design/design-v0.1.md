@@ -33,7 +33,7 @@
 
 | Level | Claim | Enforced by |
 |---|---|---|
-| ✅ **Guaranteed** | No job holding secrets, OIDC or write permissions contains a user `run:` step, or an action not marked `privileged_ok` (meaning: *runs no repo-controlled code, and has no unpinned nested references*; an action whose own build floats, such as a Dockerfile `FROM` a moving tag, may instead run as its published image **pinned by digest**, from the registry, PF905, D-035), unless `unsafe_run` is set, which is stamped in the header and turns these claims off | Zones + verifier |
+| ✅ **Guaranteed** | No job holding secrets, OIDC or write permissions contains a user `run:` step, or an action not marked `privileged_ok` (meaning: *runs no repo-controlled code, and has no unpinned nested references*; an action whose own build floats, such as a Dockerfile `FROM` a moving tag, may instead run as its published image **pinned by digest**, from the registry, PF905, #50), unless `unsafe_run` is set, which is stamped in the header and turns these claims off | Zones + verifier |
 | ✅ | **No tainted `${{ }}` in any `run:`, `script:` or `with:` value, with no exceptions.** Tainted values appear only in `env:` (named `T_*`) and in compiler-generated `if:` | Taint + verifier (checks every key) |
 | ✅ | Contexts are **tainted by default**, including `ref.name` | Taint table |
 | ✅ | Generated checkouts never override `repository`/`ref` in privileged workflows; `persist-credentials: false` is always emitted | Lowering + verifier |
@@ -93,7 +93,7 @@
   - `PF302`: cache restore.
   - `PF303`: checkout override.
   - `PF304`: an action that isn't `privileged_ok`.
-- **Feeder job:** an unprivileged job whose artifacts or outputs a privileged job consumes. It may run user code, but **can't restore caches** (`PF305`). Its artifacts are bound by digest. When it consumes artifacts itself, it gets a generated `actions: read` so its bind step can check them (D-036), the same as a privileged consumer.
+- **Feeder job:** an unprivileged job whose artifacts or outputs a privileged job consumes. It may run user code, but **can't restore caches** (`PF305`). Its artifacts are bound by digest. When it consumes artifacts itself, it gets a generated `actions: read` so its bind step can check them (#57), the same as a privileged consumer.
 - **Unprivileged job:** trusted triggers only. `contents: read` at most. It downloads consumed artifacts by name, without a bind step or any extra scope.
 - **Outputs** are declared per job (`outputs: [tag]`) and set by a step writing `tag=…` to `$GITHUB_OUTPUT`, or by an action; the job output reads the last step that set it. `{ output: job.name }` must name a declared output of a job it depends on (PF131). Outputs are **always tainted** where they are read, so a step can't do more by forging one than by writing any other value. (Draft 4 planned a generated `pinfold_output` helper with a random heredoc delimiter; it isn't needed for that reason, and it would have tied run scripts to bash.)
 

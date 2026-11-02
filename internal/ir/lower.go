@@ -62,7 +62,7 @@ func lowerWorkflow(w *spec.Workflow) *Workflow {
 // addBindingCapability gives a privileged or feeder job that consumes
 // artifacts actions: read, so its generated bind step can list this run's
 // artifacts and check each one's id and digest before the download (design
-// §2, D-036). An unprivileged job that feeds nothing downloads by name
+// §2, #57). An unprivileged job that feeds nothing downloads by name
 // without it: design §4 limits those jobs to contents: read (security audit).
 func addBindingCapability(j *Job) {
 	if len(j.Consumes) == 0 || j.Zone == ZoneUnprivileged {

@@ -8,7 +8,7 @@ import (
 	"github.com/pinfold-ci/pinfold/internal/adapter/github"
 )
 
-// Mythos audit finding I1: a branch can commit .github/workflows/pinfold-*.yml
+// External audit finding I1: a branch can commit .github/workflows/pinfold-*.yml
 // (or a directory on the way) as a symlink. Running pinfold compile on that
 // branch must not write through it.
 func TestWriteRefusesSymlinks(t *testing.T) {
