@@ -38,7 +38,7 @@ var (
 )
 
 // Env names a generated github-script step may receive (design §5), and the
-// names a registry container step reads its inputs from (D-035).
+// names a registry container step reads its inputs from (#50).
 var (
 	scriptEnvRE    = regexp.MustCompile(`^(T|PINFOLD)_[A-Z0-9_]+$`)
 	containerEnvRE = regexp.MustCompile(`^INPUT_[A-Z0-9_]+$`)

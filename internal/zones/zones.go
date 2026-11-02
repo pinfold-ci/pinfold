@@ -153,7 +153,7 @@ func maintainerGated(c *spec.Condition) bool {
 // metadataOnlyEvents run with the base repository's credentials while the
 // pull request's content is in reach: pull_request_target by design, and the
 // two review events because their GITHUB_SHA is the PR's merge commit, so a
-// default checkout gets the PR author's files (Mythos audit D1). Workflows on
+// default checkout gets the PR author's files (external audit D1). Workflows on
 // them may only label and comment.
 var metadataOnlyEvents = []string{"pull_request_target", "pull_request_review", "pull_request_review_comment"}
 
@@ -274,7 +274,7 @@ func restores(e *registry.Entry, st *spec.Step) bool {
 	}
 }
 
-// containerInputs rejects with: inputs that a container-lowered action (D-035)
+// containerInputs rejects with: inputs that a container-lowered action (#50)
 // doesn't map, and any value that isn't a literal or a secret.
 func (c *checker) containerInputs(st *spec.Step, e *registry.Entry) {
 	var allowed []string

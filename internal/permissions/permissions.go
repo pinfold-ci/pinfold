@@ -1,6 +1,6 @@
 // Package permissions checks that every job declares the token permissions its
 // steps need, and flags write permissions nothing uses (design §6, pass ⑦).
-// Permissions are declared, never inferred (D-008).
+// Permissions are declared, never inferred.
 package permissions
 
 import (

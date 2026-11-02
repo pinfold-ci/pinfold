@@ -97,7 +97,7 @@ actions:
       source: https://github.com/pypa/gh-action-pypi-publish/blob/v1.14.3/Dockerfile
       commit: 7245906fb61fa33a13554f9d5fb856fe61758086
       date: 2026-10-31
-      notes: The action builds its image FROM python:3.13-slim, a floating tag, so the action itself isn't privileged_ok. Pinfold lowers it to the published image pinned by digest instead (D-035); Python dependencies inside are hash-pinned.
+      notes: The action builds its image FROM python:3.13-slim, a floating tag, so the action itself isn't privileged_ok. Pinfold lowers it to the published image pinned by digest instead (#50); Python dependencies inside are hash-pinned.
   actions/attest:
     majors: [v4]
     privileged_ok: true
