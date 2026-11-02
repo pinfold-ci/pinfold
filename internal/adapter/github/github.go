@@ -204,6 +204,20 @@ func steps(w *ir.Workflow, j *ir.Job) emit.Seq {
 	}
 	for _, c := range j.Consumes {
 		dl := generatedActions["download"]
+		if j.Zone == ir.ZoneUnprivileged {
+			// Feeds nothing privileged: a plain download by name, with no
+			// actions: read for a bind step (design §4).
+			out = append(out, guard(gated, emit.Map{
+				{Key: "name", Value: emit.Str("pinfold: download " + c.Name), Comment: generatedMarker + j.ID + "/consume-" + c.Name},
+				{Key: "uses", Value: emit.Str(dl.ref), Comment: dl.tag},
+				{Key: "with", Value: emit.Map{
+					{Key: "name", Value: emit.Str(c.Name)},
+					{Key: "path", Value: emit.Str(c.To)},
+					{Key: "digest-mismatch", Value: emit.Str("error")},
+				}},
+			}))
+			continue
+		}
 		out = append(out, guard(gated, bindStep(j, c)))
 		out = append(out, guard(gated, emit.Map{
 			{Key: "name", Value: emit.Str("pinfold: download " + c.Name), Comment: generatedMarker + j.ID + "/consume-" + c.Name},

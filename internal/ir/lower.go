@@ -53,7 +53,26 @@ func lowerWorkflow(w *spec.Workflow) *Workflow {
 		out.Jobs = append(out.Jobs, lowerJob(out, j))
 	}
 	markFeeders(out)
+	for _, j := range out.Jobs {
+		addBindingCapability(j)
+	}
 	return out
+}
+
+// addBindingCapability gives a privileged or feeder job that consumes
+// artifacts actions: read, so its generated bind step can list this run's
+// artifacts and check each one's id and digest before the download (design
+// §2, D-036). An unprivileged job that feeds nothing downloads by name
+// without it: design §4 limits those jobs to contents: read (security audit).
+func addBindingCapability(j *Job) {
+	if len(j.Consumes) == 0 || j.Zone == ZoneUnprivileged {
+		return
+	}
+	if slices.ContainsFunc(j.Capabilities, func(c Capability) bool { return c.Resource == "ci.actions" }) {
+		return
+	}
+	j.Capabilities = append(j.Capabilities, Capability{Resource: "ci.actions", Access: Read, Source: "artifact binding"})
+	slices.SortStableFunc(j.Capabilities, func(a, b Capability) int { return strings.Compare(a.Resource, b.Resource) })
 }
 
 func lowerJob(w *Workflow, j *spec.Job) *Job {
@@ -93,10 +112,6 @@ func lowerJob(w *Workflow, j *spec.Job) *Job {
 			usesSecret = usesSecret || v.Kind == spec.Secret
 		}
 		out.Steps = append(out.Steps, step)
-	}
-	// Artifact binding lists this run's artifacts before each download (design §2).
-	if len(out.Consumes) > 0 && !slices.ContainsFunc(out.Capabilities, func(c Capability) bool { return c.Resource == "ci.actions" }) {
-		out.Capabilities = append(out.Capabilities, Capability{Resource: "ci.actions", Access: Read, Source: "artifact binding"})
 	}
 	slices.SortStableFunc(out.Capabilities, func(a, b Capability) int { return strings.Compare(a.Resource, b.Resource) })
 
