@@ -82,7 +82,7 @@ var associations = []string{"COLLABORATOR", "CONTRIBUTOR", "FIRST_TIMER", "FIRST
 var (
 	topKeys       = []string{"version", "workflows"}
 	workflowKeys  = []string{"on", "jobs", "unsafe_run"}
-	jobKeys       = []string{"runner", "ephemeral_runner", "needs", "if", "permissions", "environment", "timeout-minutes", "concurrency", "steps", "produces", "consumes"}
+	jobKeys       = []string{"runner", "ephemeral_runner", "needs", "if", "permissions", "environment", "timeout-minutes", "concurrency", "steps", "produces", "consumes", "outputs"}
 	stepCommon    = []string{"name"}
 	stepKinds     = []string{"checkout", "run", "uses", "effect"}
 	conditionKeys = []string{"all", "any", "event", "branch", "tag", "label", "comment", "maintainer", "association", "actor", "status"}

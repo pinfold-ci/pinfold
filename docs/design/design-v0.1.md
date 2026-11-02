@@ -95,7 +95,7 @@
   - `PF304`: an action that isn't `privileged_ok`.
 - **Feeder job:** an unprivileged job whose artifacts or outputs a privileged job consumes. It may run user code, but **can't restore caches** (`PF305`). Its artifacts are bound by digest. When it consumes artifacts itself, it gets a generated `actions: read` so its bind step can check them (D-036), the same as a privileged consumer.
 - **Unprivileged job:** trusted triggers only. `contents: read` at most. It downloads consumed artifacts by name, without a bind step or any extra scope.
-- **Outputs** are written with the generated `pinfold_output NAME VALUE` helper (random heredoc delimiter). They are **always tainted** when consumed by a privileged job.
+- **Outputs** are declared per job (`outputs: [tag]`) and set by a step writing `tag=…` to `$GITHUB_OUTPUT`, or by an action; the job output reads the last step that set it. `{ output: job.name }` must name a declared output of a job it depends on (PF131). Outputs are **always tainted** where they are read, so a step can't do more by forging one than by writing any other value. (Draft 4 planned a generated `pinfold_output` helper with a random heredoc delimiter; it isn't needed for that reason, and it would have tied run scripts to bash.)
 
 ### Taint
 - **Untainted, closed list:**

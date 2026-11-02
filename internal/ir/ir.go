@@ -82,6 +82,7 @@ type Job struct {
 	Steps           []*Step
 	Produces        []spec.Artifact
 	Consumes        []spec.Consume
+	Outputs         []string // declared output names
 }
 
 // StepKind is the kind of a step.

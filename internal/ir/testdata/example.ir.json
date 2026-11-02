@@ -92,7 +92,8 @@
               }
             }
           ],
-          "Consumes": null
+          "Consumes": null,
+          "Outputs": null
         },
         {
           "ID": "release/publish",
@@ -160,7 +161,8 @@
                 "col": 21
               }
             }
-          ]
+          ],
+          "Outputs": null
         },
         {
           "ID": "release/github-release",
@@ -261,7 +263,8 @@
                 "col": 21
               }
             }
-          ]
+          ],
+          "Outputs": null
         }
       ],
       "UnsafeRun": false
@@ -456,7 +459,8 @@
             }
           ],
           "Produces": null,
-          "Consumes": null
+          "Consumes": null,
+          "Outputs": null
         }
       ],
       "UnsafeRun": false
