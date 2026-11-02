@@ -103,6 +103,8 @@ test('link cap counts spaced, reference, mailto and ftp links', () => {
   assert.strictEqual(cap0('[x] ( //evil.com)'), '[x] ( [link removed])');
   assert.strictEqual(cap0('[x]: //evil.com'), '[x]: [link removed]');
   assert.strictEqual(cap0('[x]:\t//evil.com'), '[x]:\t[link removed]');
+  assert.strictEqual(cap0('[x]:\n//evil.com'), '[x]:\n[link removed]', 'destination on the next line');
+  assert.strictEqual(cap0('[x](\n//evil.com)'), '[x](\n[link removed])', 'line break before an inline target');
   assert.strictEqual(cap0('mailto:a@b.c'), '[link removed]');
   assert.strictEqual(cap0('ftp://evil.com/x ftps://e.com'), '[link removed] [link removed]');
   assert.strictEqual(cap0('a // b'), 'a // b', 'plain slashes are not links');
