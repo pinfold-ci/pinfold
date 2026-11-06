@@ -2,6 +2,7 @@
 
 [![ci](https://github.com/pinfold-ci/pinfold/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pinfold-ci/pinfold/actions/workflows/ci.yml)
 [![codeql](https://github.com/pinfold-ci/pinfold/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/pinfold-ci/pinfold/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/pinfold-ci/pinfold/badge)](https://scorecard.dev/viewer/?uri=github.com/pinfold-ci/pinfold)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
 > **Status: pre-alpha.** The compiler and its guarantees work and are tested live, but the lock (`pinfold.lock`, milestone M4) isn't built yet and the spec format may still change. Don't use it in production yet. See [ROADMAP.md](ROADMAP.md).
